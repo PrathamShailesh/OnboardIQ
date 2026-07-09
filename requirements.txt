@@ -1,2 +1,5 @@
 faker
 pandas
+fastapi
+uvicorn
+sqlalchemy
