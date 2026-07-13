@@ -1,0 +1,69 @@
+{
+  "timestamp": "2026-07-13T14:23:37.969823",
+  "filepath": "data/raw/sample.csv",
+  "expected_columns": [
+    "customer_id",
+    "customer_name",
+    "transaction_amount",
+    "transaction_date"
+  ],
+  "validation_results": [
+    {
+      "check": "file_existence",
+      "filepath": "data/raw/sample.csv",
+      "passed": true,
+      "message": "File exists and is not empty: data/raw/sample.csv"
+    },
+    {
+      "check": "file_format",
+      "filepath": "data/raw/sample.csv",
+      "allowed_formats": [
+        "csv",
+        "json",
+        "xlsx"
+      ],
+      "detected_format": "csv",
+      "passed": true,
+      "message": "File format 'csv' is supported"
+    },
+    {
+      "check": "schema_validation",
+      "expected_columns": [
+        "customer_id",
+        "customer_name",
+        "transaction_amount",
+        "transaction_date"
+      ],
+      "actual_columns": [
+        "customer_id",
+        "customer_name",
+        "transaction_amount",
+        "transaction_date"
+      ],
+      "missing_columns": [],
+      "unexpected_columns": [],
+      "passed": true,
+      "message": "Schema validation passed - all expected columns present"
+    },
+    {
+      "check": "encoding_detection",
+      "filepath": "data/raw/sample.csv",
+      "encoding": "ascii",
+      "confidence": 100.0,
+      "message": "Detected encoding: ascii (confidence: 100.0%)",
+      "passed": true
+    },
+    {
+      "check": "dataset_statistics",
+      "filepath": "data/raw/sample.csv",
+      "num_rows": 3,
+      "num_columns": 4,
+      "file_size_bytes": 157,
+      "file_size_mb": 0.0001,
+      "message": "Dataset contains 3 rows and 4 columns (0.0001 MB)",
+      "passed": true
+    }
+  ],
+  "overall_status": "PASSED",
+  "summary": "All validations passed (5/5 checks)"
+}
