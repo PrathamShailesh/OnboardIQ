@@ -1,0 +1,80 @@
+{
+  "dataset_name": "quality_test",
+  "record_count": 5,
+  "column_count": 5,
+  "null_analysis": {
+    "null_counts": {
+      "customer_id": 0,
+      "name": 1,
+      "email": 2,
+      "amount": 1,
+      "status": 0
+    },
+    "null_percentages": {
+      "customer_id": 0.0,
+      "name": 20.0,
+      "email": 40.0,
+      "amount": 20.0,
+      "status": 0.0
+    }
+  },
+  "duplicate_analysis": {
+    "duplicate_count": 0,
+    "duplicate_percentage": 0.0
+  },
+  "numerical_statistics": {
+    "customer_id": {
+      "min": 1.0,
+      "max": 5.0,
+      "mean": 3.0,
+      "median": 3.0,
+      "std": 1.58,
+      "null_count": 0.0
+    },
+    "amount": {
+      "min": 100.0,
+      "max": 500.0,
+      "mean": 237.5,
+      "median": 175.0,
+      "std": 188.75,
+      "null_count": 1.0
+    }
+  },
+  "categorical_statistics": {
+    "name": {
+      "unique_values": 3,
+      "top_values": {
+        "Alice": 2,
+        "Bob": 1,
+        "Diana": 1
+      },
+      "null_count": 1
+    },
+    "email": {
+      "unique_values": 2,
+      "top_values": {
+        "alice@example.com": 2,
+        "charlie@example.com": 1
+      },
+      "null_count": 2
+    },
+    "status": {
+      "unique_values": 3,
+      "top_values": {
+        "active": 3,
+        "inactive": 1,
+        "-50": 1
+      },
+      "null_count": 0
+    }
+  },
+  "data_quality_issues": [
+    {
+      "issue_type": "high_null_percentage",
+      "column": "email",
+      "value": 40.0,
+      "severity": "HIGH",
+      "recommendation": "Consider imputation or removing the column."
+    }
+  ]
+}
