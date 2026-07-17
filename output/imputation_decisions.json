@@ -1,0 +1,66 @@
+{
+    "customer_id": {
+        "column_type": "int64",
+        "missing_value_count_before": 0,
+        "imputation_strategy": "Drop Rows",
+        "value_used": "N/A (Rows Dropped)",
+        "business_reasoning": "Customer ID is the unique primary identifier. Rows with missing customer ID are orphaned and cannot be associated with any entity.",
+        "risk_assessment": "Low. Essential for relational integrity and accurate analytics."
+    },
+    "email": {
+        "column_type": "str",
+        "missing_value_count_before": 2,
+        "imputation_strategy": "Drop Rows",
+        "value_used": "N/A (Rows Dropped)",
+        "business_reasoning": "Email address is critical for communications and identity resolution. Operating on rows with missing email poses compliance and communication risks.",
+        "risk_assessment": "Low. Dropping ensures high-quality communications, but slightly reduces dataset size."
+    },
+    "amount": {
+        "column_type": "int64",
+        "missing_value_count_before": 0,
+        "imputation_strategy": "Median Imputation",
+        "value_used": 200.0,
+        "business_reasoning": "Using the median transaction amount maintains distribution consistency and minimizes skew from extreme transaction outliers.",
+        "risk_assessment": "Low. Prevents skewing the financial mean, but might reduce overall variance."
+    },
+    "quantity": {
+        "column_type": "object",
+        "missing_value_count_before": 0,
+        "imputation_strategy": "Median Imputation",
+        "value_used": "N/A (Column not present in current dataset)",
+        "business_reasoning": "Quantity must be a positive integer. Imputing with the median prevents fractional quantities and skewed counts.",
+        "risk_assessment": "Low. Safe default for transactional statistics."
+    },
+    "category": {
+        "column_type": "str",
+        "missing_value_count_before": 0,
+        "imputation_strategy": "Mode Imputation",
+        "value_used": "A",
+        "business_reasoning": "Mode imputation fills missing categorizations with the most common category, preserving qualitative data distributions.",
+        "risk_assessment": "Low. Safe assuming missingness is low, but can over-represent the modal category."
+    },
+    "region": {
+        "column_type": "object",
+        "missing_value_count_before": 0,
+        "imputation_strategy": "Mode Imputation",
+        "value_used": "N/A (Column not present in current dataset)",
+        "business_reasoning": "Assigns the most common geographic region to balance territorial marketing segmentation.",
+        "risk_assessment": "Low. May introduce minor localized bias if region distribution is highly uniform."
+    },
+    "status_date": {
+        "column_type": "datetime64[ns]",
+        "missing_value_count_before": 0,
+        "imputation_strategy": "Forward Fill",
+        "value_used": "N/A (Column not present in current dataset)",
+        "business_reasoning": "Time-based status updates assume a record retains its state until the next chronologically recorded change.",
+        "risk_assessment": "Medium. Assumes no changes occurred between log times, which might introduce temporal staleness."
+    },
+    "last_updated": {
+        "column_type": "datetime64[ns]",
+        "missing_value_count_before": 0,
+        "imputation_strategy": "Forward Fill",
+        "value_used": "N/A (Column not present in current dataset)",
+        "business_reasoning": "Timestamps of last update in sequential logs are forward-filled under the assumption of state persistence.",
+        "risk_assessment": "Medium. Might delay the true status transition time, but preserves correct sequence ordering."
+    }
+}
