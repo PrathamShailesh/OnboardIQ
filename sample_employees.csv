@@ -1,0 +1,11 @@
+employee_id,employee_name,email,phone,department,designation,manager,joining_date,onboarding_status,laptop_issued,access_granted,github_username,slack_id,jira_id,location,employment_type,salary,experience
+EMP001,John Doe,john.doe@company.com,+1-555-0101,Engineering,Software Engineer,Jane Smith,2026-01-15,completed,Yes,Yes,johndoe,U12345,J12345,New York,Full-Time,95000,3.5
+EMP002,Jane Smith,jane.smith@company.com,+1-555-0102,Engineering,Engineering Manager,Bob Johnson,2025-06-10,completed,Yes,Yes,janesmith,U12346,J12346,New York,Full-Time,135000,8.0
+EMP003,Bob Johnson,bob.johnson@company.com,+1-555-0103,Operations,Operations Analyst,Alice Williams,2026-03-01,onboarding,Yes,No,bjohnson,U12347,J12347,San Francisco,Full-Time,75000,2.0
+EMP004,Alice Williams,alice.williams@company.com,+1-555-0104,Operations,VP Operations,CEO,2024-11-20,completed,Yes,Yes,awilliams,U12348,J12348,San Francisco,Full-Time,150000,12.5
+EMP005,Charlie Brown,charlie.brown@company.com,+1-555-0105,Sales,Account Executive,David Miller,2026-05-12,onboarding,No,No,cbrown,U12349,J12349,Chicago,Full-Time,65000,1.5
+EMP006,David Miller,david.miller@company.com,+1-555-0106,Sales,Sales Manager,Alice Williams,2025-08-25,completed,Yes,Yes,dmiller,U12350,J12350,Chicago,Full-Time,110000,6.0
+EMP007,Emma Wilson,emma.wilson@company.com,+1-555-0107,HR,HR Coordinator,Sophia Davis,2026-02-18,onboarding,Yes,Yes,ewilson,U12351,J12351,New York,Full-Time,58000,1.0
+EMP008,Sophia Davis,sophia.davis@company.com,+1-555-0108,HR,HR Director,CEO,2024-04-15,completed,Yes,Yes,sdavis,U12352,J12352,New York,Full-Time,120000,9.0
+EMP009,Frank Thomas,frank.thomas@company.com,+1-555-0109,Finance,Financial Analyst,Grace Lee,2026-04-01,onboarding,Yes,No,fthomas,U12353,J12353,Boston,Full-Time,80000,3.0
+EMP010,Grace Lee,grace.lee@company.com,+1-555-0110,Finance,Finance Manager,Alice Williams,2025-02-10,completed,Yes,Yes,glee,U12354,J12354,Boston,Full-Time,115000,7.0

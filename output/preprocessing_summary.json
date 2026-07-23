@@ -1,5 +1,5 @@
 {
-  "timestamp": "2026-07-22T14:16:17.548762",
+  "timestamp": "2026-07-23T15:59:14.582258",
   "pipeline_status": "SUCCESS",
   "datasets_processed": 4,
   "datasets_successful": 4,
@@ -7,31 +7,23 @@
   "dataset_details": {
     "employees": {
       "status": "SUCCESS",
-      "rows": 50,
-      "columns": 4,
-      "conversion_status": "PARTIAL",
-      "columns_converted": 1
+      "rows": 10,
+      "columns": 21
     },
     "onboarding": {
       "status": "SUCCESS",
-      "rows": 50,
-      "columns": 6,
-      "conversion_status": "PARTIAL",
-      "columns_converted": 0
+      "rows": 10,
+      "columns": 6
     },
     "tools": {
       "status": "SUCCESS",
-      "rows": 50,
-      "columns": 6,
-      "conversion_status": "PARTIAL",
-      "columns_converted": 0
+      "rows": 10,
+      "columns": 6
     },
     "support": {
       "status": "SUCCESS",
-      "rows": 50,
-      "columns": 6,
-      "conversion_status": "PARTIAL",
-      "columns_converted": 0
+      "rows": 4,
+      "columns": 6
     }
   }
 }

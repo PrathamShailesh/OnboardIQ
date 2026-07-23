@@ -83,3 +83,50 @@ This project follows strict engineering guidelines:
 * `data/*.csv`: Raw synthetic data files.
 * `app/`: FastAPI backend implementation.
 * `frontend/`: React dashboard application.
+
+## 7. Employee Dataset Upload
+
+OnboardIQ supports uploading real employee datasets to replace synthetic demo data.
+
+### Supported File Formats
+- **CSV** (.csv)
+- **Excel** (.xlsx)
+
+### Upload Process
+1. Navigate to the **Employee Upload** tab in the dashboard
+2. Drag & drop your employee dataset file or click **Browse File**
+3. Click **Ingest Dataset** to upload
+4. The system automatically validates and processes the file
+
+### Validation
+The upload system validates:
+- File type (CSV/XLSX only)
+- Required columns (employee_id, employee_name)
+- Duplicate employee IDs
+- Date format (joining_date)
+- Missing values
+- File corruption
+
+### Pipeline Execution
+After successful upload, the system automatically:
+- Runs data profiling
+- Handles missing values
+- Enforces data types
+- Generates processed datasets for all dashboard tabs
+- Updates SQLite database with employee records
+
+### Dashboard Integration
+Once uploaded, the employee dataset is used across:
+- **Overview Tab**: Active onboardees, cohorts, milestones
+- **Onboarding Progress Tab**: Laptop, training, access, email completion
+- **Tool Insights Tab**: GitHub, Slack, Jira engagement metrics
+- **Support Tickets Tab**: IT support ticket analytics
+
+If no upload exists, the dashboard continues using synthetic demo data.
+
+### API Endpoints
+- `POST /upload` - Upload employee dataset
+- `GET /upload/status` - Get current upload status
+- `DELETE /upload` - Delete upload and restore synthetic data
+- `GET /employees` - List all employees (with pagination & search)
+- `GET /employees/{employee_id}` - Get specific employee details

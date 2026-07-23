@@ -406,3 +406,158 @@
   color: var(--text-muted);
   border: 1.5px dashed rgba(255, 255, 255, 0.05);
 }
+
+/* Progress Checklist Summary styling */
+.progress-checklist-summary {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  width: 100%;
+}
+
+.checklist-item-bar {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.bar-labels {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+
+.bar-outer {
+  background-color: rgba(255, 255, 255, 0.06);
+  height: 8px;
+  border-radius: 999px;
+  overflow: hidden;
+  width: 100%;
+}
+
+.bar-inner {
+  height: 100%;
+  border-radius: 999px;
+  transition: width 0.4s ease;
+}
+
+.bar-inner.accent-1 { background-color: var(--accent-primary); }
+.bar-inner.accent-2 { background-color: var(--accent-secondary); }
+.bar-inner.accent-3 { background-color: hsl(142, 70%, 50%); }
+.bar-inner.accent-4 { background-color: hsl(327, 80%, 60%); }
+
+/* Detailed Milestones styling */
+.detailed-milestones-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 20px;
+  padding: 24px;
+}
+
+.milestone-detail-card {
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 12px;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.milestone-detail-card h3 {
+  font-size: 1rem;
+  font-weight: 700;
+  color: #ffffff;
+}
+
+.value-label {
+  font-size: 1.5rem;
+  font-weight: 800;
+  color: var(--accent-primary);
+}
+
+.progress-bar-detail {
+  background: rgba(255, 255, 255, 0.05);
+  height: 6px;
+  border-radius: 999px;
+  overflow: hidden;
+}
+
+.progress-bar-fill {
+  height: 100%;
+  border-radius: 999px;
+  transition: width 0.3s ease;
+}
+
+.fill-laptop { background: var(--accent-primary); }
+.fill-training { background: var(--accent-secondary); }
+.fill-access { background: hsl(142, 70%, 50%); }
+.fill-email { background: hsl(327, 80%, 60%); }
+
+/* Tool utilization metrics */
+.tool-utilization-metrics {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 20px;
+  padding: 24px;
+}
+
+.tool-metric-card {
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 12px;
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+}
+
+.tool-badge {
+  padding: 0.35rem 0.75rem;
+  border-radius: 4px;
+  font-size: 0.75rem;
+  font-weight: bold;
+  text-transform: uppercase;
+}
+
+.tool-badge.slack { background: rgba(74, 21, 75, 0.2); color: #e01e5a; border: 1px solid rgba(74, 21, 75, 0.4); }
+.tool-badge.github { background: rgba(255, 255, 255, 0.05); color: #ffffff; border: 1px solid rgba(255, 255, 255, 0.1); }
+.tool-badge.jira { background: rgba(0, 82, 204, 0.15); color: #0052cc; border: 1px solid rgba(0, 82, 204, 0.3); }
+
+.metric-large {
+  font-size: 2.5rem;
+  font-weight: 800;
+  color: #ffffff;
+}
+
+.metric-label {
+  font-size: 0.85rem;
+  color: var(--text-muted);
+  font-weight: 600;
+}
+
+/* Support Analytics styling */
+.support-analytics-grid {
+  padding: 24px;
+}
+
+.categories-chart-bars {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  width: 100%;
+}
+
+.category-item-bar {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.fill-support {
+  background-color: hsl(346, 80%, 60%);
+}
+
