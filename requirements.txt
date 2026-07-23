@@ -3,3 +3,5 @@ pandas
 fastapi
 uvicorn
 sqlalchemy
+openpyxl
+python-multipart

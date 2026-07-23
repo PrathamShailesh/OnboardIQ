@@ -1,16 +1,80 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Sidebar from './Sidebar';
+import EmployeeUpload from './EmployeeUpload';
 import './DashboardShell.css';
 
 function DashboardShell() {
   const [activeTab, setActiveTab] = useState('overview');
+  const [dashboardStats, setDashboardStats] = useState({
+    activeOnboardees: '142',
+    activeChange: '+12% this week',
+    onboardingSpeed: '22.4 Days',
+    speedChange: '-3.2 days vs last month',
+    toolAdoption: '84.8%',
+    toolChange: '+4.5% vs average',
+    openTickets: '18',
+    ticketsChange: '+3 new today',
+    cohorts: [
+      { name: 'Engineering Cohort Q3', code: 'ENG', members: 12, completion_rate: 84 },
+      { name: 'Operations Cohort Q3', code: 'OPS', members: 8, completion_rate: 92 },
+      { name: 'Sales & Growth Cohort Q3', code: 'SLS', members: 15, completion_rate: 71 }
+    ],
+    milestones: {
+      laptop: 42,
+      training: 38,
+      access: 40,
+      email: 44,
+      complete: 35,
+      total: 50
+    },
+    toolEngagement: {
+      slack_messages: 234,
+      github_commits: 48,
+      jira_resolved: 18
+    },
+    ticketCategories: {
+      'Hardware': 8,
+      'Software': 4,
+      'Network': 3,
+      'Access': 2,
+      'Account': 1
+    }
+  });
 
-  // Let's create mockup statistics aligned with OnboardIQ overview requirements
+  const loadDashboardData = async () => {
+    try {
+      const res = await fetch('http://localhost:8000/dashboard/summary');
+      if (res.ok) {
+        const data = await res.json();
+        setDashboardStats({
+          activeOnboardees: String(data.active_onboardees),
+          activeChange: data.total_employees ? `Out of ${data.total_employees} active` : '+12% this week',
+          onboardingSpeed: data.avg_onboarding_speed,
+          speedChange: 'Overall completed avg speed',
+          toolAdoption: data.tool_adoption_rate,
+          toolChange: 'VC / Chat active registration',
+          openTickets: String(data.open_tickets),
+          ticketsChange: 'IT setup unresolved tickets',
+          cohorts: data.cohorts,
+          milestones: data.onboarding_milestones,
+          toolEngagement: data.tool_engagement,
+          ticketCategories: data.ticket_categories
+        });
+      }
+    } catch (err) {
+      console.error('Error loading dashboard data:', err);
+    }
+  };
+
+  useEffect(() => {
+    loadDashboardData();
+  }, [activeTab]);
+
   const stats = [
     {
       title: 'Active Onboardees',
-      value: '142',
-      change: '+12% this week',
+      value: dashboardStats.activeOnboardees,
+      change: dashboardStats.activeChange,
       isPositive: true,
       color: 'var(--accent-primary)',
       icon: (
@@ -24,8 +88,8 @@ function DashboardShell() {
     },
     {
       title: 'Avg. Onboarding Speed',
-      value: '22.4 Days',
-      change: '-3.2 days vs last month',
+      value: dashboardStats.onboardingSpeed,
+      change: dashboardStats.speedChange,
       isPositive: true,
       color: 'var(--accent-secondary)',
       icon: (
@@ -37,8 +101,8 @@ function DashboardShell() {
     },
     {
       title: 'Tool Adoption Rate',
-      value: '84.8%',
-      change: '+4.5% vs average',
+      value: dashboardStats.toolAdoption,
+      change: dashboardStats.toolChange,
       isPositive: true,
       color: 'hsl(142, 70%, 50%)',
       icon: (
@@ -50,8 +114,8 @@ function DashboardShell() {
     },
     {
       title: 'Open IT Support Tickets',
-      value: '18',
-      change: '+3 new today',
+      value: dashboardStats.openTickets,
+      change: dashboardStats.ticketsChange,
       isPositive: false,
       color: 'hsl(346, 80%, 60%)',
       icon: (
@@ -75,12 +139,11 @@ function DashboardShell() {
                 <p>Track employee onboarding milestones, IT equipment ticketing, and software license adoption in one unified analytics pane.</p>
               </div>
               <div className="welcome-action">
-                <button className="primary-btn">
-                  <span>Generate Report</span>
+                <button className="primary-btn" onClick={loadDashboardData}>
+                  <span>Refresh Metrics</span>
                   <svg className="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                    <polyline points="8 17 12 21 16 17" />
-                    <line x1="12" y1="12" x2="12" y2="21" />
-                    <path d="M20.88 18.09A5 5 0 0 0 18 9h-1.26A8 8 0 1 0 3 16.29" />
+                    <path d="M23 4v6h-6M1 20v-6h6" />
+                    <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15" />
                   </svg>
                 </button>
               </div>
@@ -111,37 +174,64 @@ function DashboardShell() {
                   <h3>Onboarding Bottlenecks & Progress</h3>
                   <span className="badge">Realtime</span>
                 </div>
-                <div className="placeholder-viz">
-                  <div className="pulse-circle" />
-                  <p className="placeholder-text">Visualization engine is ready. Connect the FastAPI backend to visualize live onboarding data.</p>
+                
+                <div className="progress-checklist-summary">
+                  <div className="checklist-item-bar">
+                    <div className="bar-labels">
+                      <span>Laptops Issued</span>
+                      <span>{dashboardStats.milestones.laptop} / {dashboardStats.milestones.total}</span>
+                    </div>
+                    <div className="bar-outer">
+                      <div className="bar-inner accent-1" style={{ width: `${(dashboardStats.milestones.laptop / Math.max(dashboardStats.milestones.total, 1)) * 100}%` }} />
+                    </div>
+                  </div>
+
+                  <div className="checklist-item-bar">
+                    <div className="bar-labels">
+                      <span>Training Completed</span>
+                      <span>{dashboardStats.milestones.training} / {dashboardStats.milestones.total}</span>
+                    </div>
+                    <div className="bar-outer">
+                      <div className="bar-inner accent-2" style={{ width: `${(dashboardStats.milestones.training / Math.max(dashboardStats.milestones.total, 1)) * 100}%` }} />
+                    </div>
+                  </div>
+
+                  <div className="checklist-item-bar">
+                    <div className="bar-labels">
+                      <span>Security Access Granted</span>
+                      <span>{dashboardStats.milestones.access} / {dashboardStats.milestones.total}</span>
+                    </div>
+                    <div className="bar-outer">
+                      <div className="bar-inner accent-3" style={{ width: `${(dashboardStats.milestones.access / Math.max(dashboardStats.milestones.total, 1)) * 100}%` }} />
+                    </div>
+                  </div>
+
+                  <div className="checklist-item-bar">
+                    <div className="bar-labels">
+                      <span>Email Configured</span>
+                      <span>{dashboardStats.milestones.email} / {dashboardStats.milestones.total}</span>
+                    </div>
+                    <div className="bar-outer">
+                      <div className="bar-inner accent-4" style={{ width: `${(dashboardStats.milestones.email / Math.max(dashboardStats.milestones.total, 1)) * 100}%` }} />
+                    </div>
+                  </div>
                 </div>
               </div>
+
               <div className="data-panel side-panel glass-panel">
                 <div className="panel-header">
                   <h3>Recent Cohorts</h3>
                 </div>
                 <div className="cohorts-list">
-                  <div className="cohort-item">
-                    <div className="cohort-avatar font-eng">ENG</div>
-                    <div className="cohort-details">
-                      <h4>Engineering Cohort Q3</h4>
-                      <p>12 members • 84% avg completion</p>
+                  {dashboardStats.cohorts.map((cohort, idx) => (
+                    <div key={idx} className="cohort-item">
+                      <div className={`cohort-avatar font-${cohort.code.toLowerCase()}`}>{cohort.code}</div>
+                      <div className="cohort-details">
+                        <h4>{cohort.name}</h4>
+                        <p>{cohort.members} members • {cohort.completion_rate}% completion</p>
+                      </div>
                     </div>
-                  </div>
-                  <div className="cohort-item">
-                    <div className="cohort-avatar font-ops">OPS</div>
-                    <div className="cohort-details">
-                      <h4>Operations Cohort Q3</h4>
-                      <p>8 members • 92% avg completion</p>
-                    </div>
-                  </div>
-                  <div className="cohort-item">
-                    <div className="cohort-avatar font-sales">SLS</div>
-                    <div className="cohort-details">
-                      <h4>Sales & Growth Cohort Q3</h4>
-                      <p>15 members • 71% avg completion</p>
-                    </div>
-                  </div>
+                  ))}
                 </div>
               </div>
             </div>
@@ -151,9 +241,36 @@ function DashboardShell() {
         return (
           <div className="tab-content animate-fade-in">
             <h2>Onboarding Progress Detailed View</h2>
-            <p className="tab-desc">Monitor employee tasks completion timelines, time-to-first-commit, and general milestone status.</p>
-            <div className="data-panel glass-panel empty-state">
-              <p>Onboarding metrics visualization will load once database schemas are populated.</p>
+            <p className="tab-desc">Monitor employee tasks completion timelines, equipment logs, and milestone status.</p>
+            <div className="data-panel glass-panel detailed-milestones-grid">
+              <div className="milestone-detail-card">
+                <h3>Laptop Deployments</h3>
+                <div className="value-label">{dashboardStats.milestones.laptop} / {dashboardStats.milestones.total} Assigned</div>
+                <div className="progress-bar-detail">
+                  <div className="progress-bar-fill fill-laptop" style={{ width: `${(dashboardStats.milestones.laptop / Math.max(dashboardStats.milestones.total, 1)) * 100}%` }} />
+                </div>
+              </div>
+              <div className="milestone-detail-card">
+                <h3>Training Completions</h3>
+                <div className="value-label">{dashboardStats.milestones.training} / {dashboardStats.milestones.total} Completed</div>
+                <div className="progress-bar-detail">
+                  <div className="progress-bar-fill fill-training" style={{ width: `${(dashboardStats.milestones.training / Math.max(dashboardStats.milestones.total, 1)) * 100}%` }} />
+                </div>
+              </div>
+              <div className="milestone-detail-card">
+                <h3>Security Credentials</h3>
+                <div className="value-label">{dashboardStats.milestones.access} / {dashboardStats.milestones.total} Granted</div>
+                <div className="progress-bar-detail">
+                  <div className="progress-bar-fill fill-access" style={{ width: `${(dashboardStats.milestones.access / Math.max(dashboardStats.milestones.total, 1)) * 100}%` }} />
+                </div>
+              </div>
+              <div className="milestone-detail-card">
+                <h3>Corporate Email Setup</h3>
+                <div className="value-label">{dashboardStats.milestones.email} / {dashboardStats.milestones.total} Synchronized</div>
+                <div className="progress-bar-detail">
+                  <div className="progress-bar-fill fill-email" style={{ width: `${(dashboardStats.milestones.email / Math.max(dashboardStats.milestones.total, 1)) * 100}%` }} />
+                </div>
+              </div>
             </div>
           </div>
         );
@@ -161,9 +278,23 @@ function DashboardShell() {
         return (
           <div className="tab-content animate-fade-in">
             <h2>Tool Insights & License Utilization</h2>
-            <p className="tab-desc">Analyze licensing costs and engagement for tools such as Slack, GitHub, Figma, and Jira.</p>
-            <div className="data-panel glass-panel empty-state">
-              <p>Tool activity charts are loading. FastAPI SQLite connection required.</p>
+            <p className="tab-desc">Analyze average engagement stats for development, collaboration, and project management tools.</p>
+            <div className="data-panel glass-panel tool-utilization-metrics">
+              <div className="tool-metric-card">
+                <div className="tool-badge slack">Slack</div>
+                <div className="metric-large">{dashboardStats.toolEngagement.slack_messages}</div>
+                <div className="metric-label">Avg Messages / Month</div>
+              </div>
+              <div className="tool-metric-card">
+                <div className="tool-badge github">GitHub</div>
+                <div className="metric-large">{dashboardStats.toolEngagement.github_commits}</div>
+                <div className="metric-label">Avg Commits / Month</div>
+              </div>
+              <div className="tool-metric-card">
+                <div className="tool-badge jira">Jira</div>
+                <div className="metric-large">{dashboardStats.toolEngagement.jira_resolved}</div>
+                <div className="metric-label">Avg Tickets Resolved</div>
+              </div>
             </div>
           </div>
         );
@@ -171,12 +302,30 @@ function DashboardShell() {
         return (
           <div className="tab-content animate-fade-in">
             <h2>Support Ticket Analytics</h2>
-            <p className="tab-desc">Monitor time-to-resolution, ticket severity, and setup bottlenecks for new hire laptops and access cards.</p>
-            <div className="data-panel glass-panel empty-state">
-              <p>Support tickets dataset is currently disconnected.</p>
+            <p className="tab-desc">Monitor hardware, software, and credential ticket types submitted by active onboardees.</p>
+            <div className="data-panel glass-panel support-analytics-grid">
+              {Object.keys(dashboardStats.ticketCategories).length === 0 ? (
+                <p>No active support tickets recorded.</p>
+              ) : (
+                <div className="categories-chart-bars">
+                  {Object.entries(dashboardStats.ticketCategories).map(([cat, count], idx) => (
+                    <div key={idx} className="category-item-bar">
+                      <div className="bar-labels">
+                        <span>{cat} Issues</span>
+                        <span>{count} Open</span>
+                      </div>
+                      <div className="bar-outer">
+                        <div className="bar-inner fill-support" style={{ width: `${Math.min((count / 15) * 100, 100)}%` }} />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
           </div>
         );
+      case 'upload':
+        return <EmployeeUpload />;
       default:
         return null;
     }
