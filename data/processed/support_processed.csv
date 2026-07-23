@@ -1,51 +1,5 @@
 Ticket ID,Employee ID,Issue Type,Resolution Time (hours),Status,Priority
-TKT-0001,1,Access,16,In Progress,Critical
-TKT-0002,2,Account,68,Resolved,Critical
-TKT-0003,3,Access,65,Closed,Medium
-TKT-0004,4,Access,61,Resolved,Medium
-TKT-0005,5,Account,36,Closed,Medium
-TKT-0006,6,Access,36,Open,High
-TKT-0007,7,Network,31,Resolved,High
-TKT-0008,8,Hardware,70,In Progress,Medium
-TKT-0009,9,Access,30,In Progress,Medium
-TKT-0010,10,Access,9,Closed,High
-TKT-0011,11,Access,70,Closed,Low
-TKT-0012,12,Access,27,Closed,Low
-TKT-0013,13,Access,49,Open,High
-TKT-0014,14,Access,39,Closed,Medium
-TKT-0015,15,Software,63,Resolved,Critical
-TKT-0016,16,Hardware,63,Closed,High
-TKT-0017,17,Software,52,Closed,Medium
-TKT-0018,18,Hardware,69,Closed,Low
-TKT-0019,19,Access,11,In Progress,Critical
-TKT-0020,20,Hardware,24,Resolved,Critical
-TKT-0021,21,Software,42,Closed,High
-TKT-0022,22,Access,44,Resolved,Critical
-TKT-0023,23,Hardware,33,Closed,Low
-TKT-0024,24,Hardware,70,Resolved,Medium
-TKT-0025,25,Hardware,9,Open,Medium
-TKT-0026,26,Hardware,26,In Progress,Medium
-TKT-0027,27,Access,17,Open,Medium
-TKT-0028,28,Network,60,Resolved,Medium
-TKT-0029,29,Software,15,Resolved,Low
-TKT-0030,30,Network,4,Closed,Critical
-TKT-0031,31,Hardware,26,In Progress,Low
-TKT-0032,32,Account,39,Open,Low
-TKT-0033,33,Account,45,Closed,High
-TKT-0034,34,Account,9,Resolved,Low
-TKT-0035,35,Access,54,Open,Critical
-TKT-0036,36,Access,47,In Progress,Critical
-TKT-0037,37,Account,23,Resolved,Critical
-TKT-0038,38,Access,60,Resolved,High
-TKT-0039,39,Hardware,32,Resolved,Critical
-TKT-0040,40,Access,32,Closed,High
-TKT-0041,41,Access,4,Resolved,Medium
-TKT-0042,42,Software,63,Resolved,High
-TKT-0043,43,Network,44,Resolved,Low
-TKT-0044,44,Software,67,Open,Medium
-TKT-0045,45,Access,53,In Progress,Critical
-TKT-0046,46,Access,63,Open,Low
-TKT-0047,47,Software,38,Closed,Medium
-TKT-0048,48,Account,40,Resolved,Critical
-TKT-0049,49,Account,71,Resolved,Critical
-TKT-0050,50,Network,71,Resolved,Critical
+TKT-1000,EMP001,Access,28,Resolved,Critical
+TKT-1003,EMP004,Access,8,Resolved,High
+TKT-1006,EMP007,Hardware,36,In Progress,Critical
+TKT-1009,EMP010,Access,2,In Progress,Medium

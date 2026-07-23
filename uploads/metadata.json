@@ -1,0 +1,9 @@
+{
+  "status": "active",
+  "active_file": "sample_employees.xlsx",
+  "rows": 10,
+  "columns": 18,
+  "upload_time": "2026-07-23 15:59:14",
+  "validation_passed": true,
+  "processing_time_ms": 1494
+}

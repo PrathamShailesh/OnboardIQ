@@ -243,6 +243,9 @@ def process_and_validate_upload(filepath: str) -> dict:
     string_cols = ['email', 'phone', 'department', 'designation', 'manager', 'onboarding_status', 'github_username', 'slack_id', 'jira_id', 'location', 'employment_type']
     for col in string_cols:
         if col in df_clean.columns:
+            # Handle categorical columns by converting to object first
+            if pd.api.types.is_categorical_dtype(df_clean[col]):
+                df_clean[col] = df_clean[col].astype('object')
             df_clean[col] = df_clean[col].fillna("Unknown")
         else:
             df_clean[col] = "Unknown"
