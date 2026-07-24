@@ -84,7 +84,32 @@ This project follows strict engineering guidelines:
 * `app/`: FastAPI backend implementation.
 * `frontend/`: React dashboard application.
 
-## 7. Employee Dataset Upload
+## 7. Upload data quality pipeline
+
+Uploads accept CSV and XLSX employee data. `employee_id`, `employee_name`, and a valid
+`joining_date` are required for a record to become active. Common headers such as `Employee ID`,
+`Employee Name`, and `Joining Date` are mapped automatically. Optional fields include `email`,
+`department`, `designation`, `location`, `employment_type`, `onboarding_status`,
+`laptop_issued`, `training_completed`, `access_granted`, `email_setup`, `onboarding_complete`,
+and real onboarding completion-date fields.
+
+Text is trimmed, internal whitespace is collapsed, names are title-cased, emails lower-cased, and
+known department aliases (for example `eng` and `hr`) are canonicalized. Dates are parsed safely
+and emitted as `YYYY-MM-DD`; invalid dates are reported, never replaced with invented dates.
+Exact duplicates and repeated employee IDs are removed deterministically (the first valid record
+is retained). Invalid records are not loaded into the active employee database.
+
+Every upload writes these auditable files under `output/`:
+
+* `data_quality_report.json` — processing, normalization, conversion, validation, merge, and feature summaries.
+* `removed_duplicates.csv` — every removed duplicate and its reason.
+* `validation_failures.csv` — rejected records with `validation_reasons`.
+* `unmatched_<source>_records.csv` and `employees_without_<source>.csv` — produced when optional related sources are merge-validated.
+
+Dashboard KPIs use only supplied valid data. Metrics without supporting source columns or real
+completion dates are returned as `unavailable` rather than synthetic estimates.
+
+## 8. Employee Dataset Upload
 
 OnboardIQ supports uploading real employee datasets to replace synthetic demo data.
 

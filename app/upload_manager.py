@@ -16,6 +16,11 @@ from scripts.validate_intake import validate_file_exists, validate_file_format, 
 from scripts.profile_data import profile_nulls_and_duplicates, identify_quality_issues
 from scripts.handle_missing import analyze_missing_values
 from scripts.type_enforcement import enforce_types
+from scripts.onboarding_quality import (
+    process_employee_dataframe,
+    save_quality_report,
+    calculate_kpis,
+)
 
 UPLOAD_DIR = Path("uploads")
 METADATA_FILE = UPLOAD_DIR / "metadata.json"
@@ -87,7 +92,7 @@ def restore_synthetic_data():
         "processing_time_ms": 0
     })
 
-def process_and_validate_upload(filepath: str) -> dict:
+def _legacy_process_and_validate_upload(filepath: str) -> dict:
     """
     Loads, validates, and processes the uploaded employee dataset.
     Integrates existing scripts: validate_intake, profile_data, handle_missing, type_enforcement.
@@ -388,4 +393,88 @@ def process_and_validate_upload(filepath: str) -> dict:
         "processing_time_ms": processing_time_ms
     })
 
+    return report
+
+
+def _db_value(row: pd.Series, column: str, default=None):
+    """Return a database-safe scalar without hiding missing source data."""
+    value = row.get(column, default)
+    return default if pd.isna(value) else value
+
+
+def process_and_validate_upload(filepath: str) -> dict:
+    """Process a CSV/XLSX upload through the auditable onboarding quality pipeline."""
+    started = datetime.now()
+    report = {"passed": False, "error": None, "rows": 0, "columns": 0,
+              "filename": os.path.basename(filepath), "issues": []}
+    existence = validate_file_exists(filepath)
+    if not existence["passed"]:
+        report["error"] = existence["message"]
+        return report
+    fmt = validate_file_format(filepath, allowed_formats=["csv", "xlsx"])
+    if not fmt["passed"]:
+        report["error"] = "Unsupported file type"
+        report["issues"].append(fmt["message"])
+        return report
+    try:
+        if fmt["detected_format"] == "csv":
+            source = pd.read_csv(filepath, encoding=detect_encoding(filepath).get("encoding", "utf-8"))
+        else:
+            source = pd.read_excel(filepath)
+    except Exception:
+        report["error"] = "Corrupted file"
+        report["issues"].append("The uploaded file could not be read as a tabular dataset.")
+        return report
+    if source.empty:
+        report["error"] = "Corrupted file"
+        report["issues"].append("The uploaded dataset contains zero rows.")
+        return report
+    cleaned, quality = process_employee_dataframe(source)
+    required = {"employee_id", "employee_name"}
+    if not required.issubset(cleaned.columns):
+        report["error"] = "Missing required columns"
+        report["issues"].append("The dataset must contain employee_id and employee_name.")
+        quality["warnings"].append(report["issues"][-1])
+        save_quality_report(quality)
+        return report
+    valid = cleaned.loc[cleaned["passes_all_checks"]].copy()
+    if valid.empty:
+        report["error"] = "No valid employee records"
+        report["issues"].append("All rows failed validation; see output/validation_failures.csv for reasons.")
+        save_quality_report(quality)
+        return report
+    quality["kpis"] = calculate_kpis(valid)
+    save_quality_report(quality)
+    db: Session = SessionLocal()
+    try:
+        db.query(Employee).delete()
+        for _, row in valid.iterrows():
+            db.add(Employee(
+                employee_id=str(_db_value(row, "employee_id", "")), employee_name=str(_db_value(row, "employee_name", "")),
+                email=_db_value(row, "email"), phone=_db_value(row, "phone"), department=_db_value(row, "department"),
+                designation=_db_value(row, "designation"), manager=_db_value(row, "manager"), joining_date=_db_value(row, "joining_date"),
+                onboarding_status=_db_value(row, "onboarding_status"), laptop_issued=_db_value(row, "laptop_issued"),
+                access_granted=_db_value(row, "access_granted"), github_username=_db_value(row, "github_username"),
+                slack_id=_db_value(row, "slack_id"), jira_id=_db_value(row, "jira_id"), location=_db_value(row, "location"),
+                employment_type=_db_value(row, "employment_type"), salary=_db_value(row, "salary"), experience=_db_value(row, "experience")))
+        db.commit()
+    except Exception as exc:
+        db.rollback()
+        report["error"] = "Database error"
+        report["issues"].append(f"Failed to persist valid records: {exc}")
+        return report
+    finally:
+        db.close()
+    processed = Path("data/processed")
+    processed.mkdir(parents=True, exist_ok=True)
+    valid[["employee_id", "employee_name"] + [c for c in ("department", "joining_date") if c in valid]].rename(columns={"employee_id": "ID", "employee_name": "Name", "department": "Department", "joining_date": "Joining Date"}).to_csv(processed / "employees_processed.csv", index=False)
+    onboarding_columns = [c for c in ["employee_id", "laptop_issued", "training_completed", "access_granted", "email_setup", "onboarding_complete"] if c in valid]
+    if onboarding_columns:
+        valid[onboarding_columns].rename(columns={"employee_id": "Employee ID", "laptop_issued": "Laptop Issued", "training_completed": "Training Completed", "access_granted": "Security Access Granted", "email_setup": "Email Setup", "onboarding_complete": "Onboarding Complete"}).to_csv(processed / "onboarding_processed.csv", index=False)
+    # Do not manufacture tool use or tickets. Remove stale upload artifacts when absent.
+    for stale in (processed / "tools_processed.csv", processed / "support_processed.csv"):
+        if stale.exists(): stale.unlink()
+    elapsed = int((datetime.now() - started).total_seconds() * 1000)
+    report.update({"passed": True, "rows": len(valid), "columns": len(source) and len(source.columns), "quality_report": quality})
+    save_upload_status({"status": "active", "active_file": report["filename"], "rows": len(valid), "columns": len(source.columns), "upload_time": datetime.now().strftime("%Y-%m-%d %H:%M:%S"), "validation_passed": True, "processing_time_ms": elapsed, "quality_report": "output/data_quality_report.json"})
     return report
