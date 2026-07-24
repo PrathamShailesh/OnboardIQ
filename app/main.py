@@ -71,7 +71,7 @@ async def upload_dataset(file: UploadFile = File(...)):
             
     if not report["passed"]:
         # Raise 400 Bad Request with details
-        raise HTTPException(status_code=400, detail=report["error"])
+        raise HTTPException(status_code=400, detail={"message": report["error"], "issues": report.get("issues", [])})
         
     return {
         "status": "success",
@@ -261,9 +261,8 @@ def get_dashboard_summary():
     
     active_onboardees = total_onboardees - complete_count
     
-    # Calculate avg onboarding speed
-    # Let's say default speed is 22.4 days, and changes based on complete onboarding ratio
-    avg_speed = round(25.0 - (complete_count / max(total_onboardees, 1) * 5.0), 1)
+    # Duration is only available when a real completion date was supplied.
+    avg_speed = None
     
     # Tool Adoption rate
     # Fraction of employees with GitHub commits or Slack messages > 0
@@ -271,13 +270,13 @@ def get_dashboard_summary():
         adopted_users = ((df_tools['GitHub Commits'] > 0) | (df_tools['Slack Messages'] > 0)).sum()
         tool_adoption = round((adopted_users / max(len(df_tools), 1)) * 100, 1)
     else:
-        tool_adoption = 84.8
+        tool_adoption = None
         
     # Open Support Tickets
     if not df_supp.empty and 'Status' in df_supp.columns:
         open_tickets = int(df_supp['Status'].isin(['Open', 'In Progress']).sum())
     else:
-        open_tickets = 18
+        open_tickets = None
 
     # Calculate cohorts metrics (grouped by department)
     cohorts = []
@@ -294,12 +293,6 @@ def get_dashboard_summary():
                 "members": members,
                 "completion_rate": comp_rate
             })
-    if not cohorts:
-        cohorts = [
-            {"name": "Engineering Cohort", "code": "ENG", "members": 12, "completion_rate": 84},
-            {"name": "Operations Cohort", "code": "OPS", "members": 8, "completion_rate": 92},
-            {"name": "Sales Cohort", "code": "SLS", "members": 15, "completion_rate": 71}
-        ]
 
     # Tool engagement charts (averages per department)
     tool_engagement = {
@@ -321,8 +314,8 @@ def get_dashboard_summary():
 
     return {
         "active_onboardees": active_onboardees,
-        "avg_onboarding_speed": f"{avg_speed} Days",
-        "tool_adoption_rate": f"{tool_adoption}%",
+        "avg_onboarding_speed": f"{avg_speed} Days" if avg_speed is not None else "unavailable",
+        "tool_adoption_rate": f"{tool_adoption}%" if tool_adoption is not None else "unavailable",
         "open_tickets": open_tickets,
         "cohorts": cohorts,
         "onboarding_milestones": {

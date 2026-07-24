@@ -133,7 +133,11 @@ function EmployeeUpload() {
       const result = await response.json();
       
       if (!response.ok) {
-        throw new Error(result.detail || 'Failed to parse file.');
+        const detail = result.detail;
+        const message = typeof detail === 'object'
+          ? [detail.message, ...(detail.issues || [])].filter(Boolean).join(' ')
+          : detail;
+        throw new Error(message || 'Failed to parse file.');
       }
 
       setSuccessMessage('Upload Successful');
