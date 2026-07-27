@@ -7,7 +7,12 @@ preprocessing pipeline that prepares data for analysis and model training.
 """
 
 import os
+import sys
 import pandas as pd
+
+# Add current directory to path for module imports
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+
 from type_enforcement import enforce_types, generate_conversion_report
 from validate_intake import validate_file_exists, validate_file_format, validate_schema
 import json

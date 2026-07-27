@@ -1,5 +1,68 @@
 Ticket ID,Employee ID,Issue Type,Resolution Time (hours),Status,Priority
-TKT-1000,EMP001,Access,28,Resolved,Critical
-TKT-1003,EMP004,Access,8,Resolved,High
-TKT-1006,EMP007,Hardware,36,In Progress,Critical
-TKT-1009,EMP010,Access,2,In Progress,Medium
+TKT-1000,OB001,Software,44,In Progress,Low
+TKT-1003,OB004,Software,20,Open,High
+TKT-1006,OB007,Account,9,Open,Low
+TKT-1009,OB010,Network,15,Closed,Medium
+TKT-1012,OB013,Network,30,Resolved,Low
+TKT-1015,OB016,Account,44,In Progress,Medium
+TKT-1018,OB019,Account,11,Open,Medium
+TKT-1021,OB022,Access,35,Resolved,Low
+TKT-1024,OB025,Access,29,Closed,High
+TKT-1027,OB028,Hardware,37,In Progress,Critical
+TKT-1030,OB031,Network,21,Open,Low
+TKT-1033,OB034,Network,14,In Progress,Medium
+TKT-1036,OB037,Access,25,Open,Medium
+TKT-1039,OB040,Hardware,18,Closed,Critical
+TKT-1042,OB043,Network,38,Open,High
+TKT-1045,OB046,Hardware,25,Open,Low
+TKT-1048,OB049,Software,14,Open,Critical
+TKT-1051,OB052,Network,39,Resolved,Medium
+TKT-1054,OB055,Network,7,Resolved,Critical
+TKT-1057,OB058,Software,15,Resolved,Low
+TKT-1060,OB061,Hardware,30,Resolved,High
+TKT-1063,OB064,Access,29,In Progress,Low
+TKT-1066,OB067,Hardware,37,Resolved,High
+TKT-1069,OB070,Hardware,4,In Progress,Medium
+TKT-1072,OB073,Software,5,Resolved,Medium
+TKT-1075,OB076,Hardware,38,Open,High
+TKT-1078,OB079,Access,45,Closed,Critical
+TKT-1081,OB082,Account,8,Open,Low
+TKT-1084,OB085,Access,12,Open,Medium
+TKT-1087,OB088,Network,31,Resolved,High
+TKT-1090,OB091,Access,36,In Progress,High
+TKT-1093,OB094,Network,5,Closed,High
+TKT-1096,OB097,Software,40,In Progress,Medium
+TKT-1099,OB100,Software,46,Resolved,Critical
+TKT-1102,OB103,Software,13,Closed,Medium
+TKT-1105,OB106,Software,25,Open,High
+TKT-1108,OB109,Access,43,Closed,Critical
+TKT-1111,OB112,Access,4,Open,Critical
+TKT-1114,OB115,Account,8,Resolved,Medium
+TKT-1117,OB118,Hardware,28,Resolved,Medium
+TKT-1120,OB121,Hardware,29,In Progress,Critical
+TKT-1123,OB124,Hardware,22,Resolved,High
+TKT-1126,OB127,Hardware,46,Open,Low
+TKT-1129,OB130,Software,46,Closed,Medium
+TKT-1132,OB133,Hardware,1,Resolved,Medium
+TKT-1135,OB136,Network,40,Resolved,Low
+TKT-1138,OB139,Hardware,9,In Progress,Critical
+TKT-1141,OB142,Hardware,26,Open,High
+TKT-1144,OB145,Access,25,In Progress,High
+TKT-1147,OB148,Software,7,In Progress,High
+TKT-1150,OB151,Software,27,Open,Critical
+TKT-1153,OB154,Network,44,Resolved,High
+TKT-1156,OB157,Hardware,7,Closed,Medium
+TKT-1159,OB160,Account,24,Open,Low
+TKT-1162,OB163,Account,43,In Progress,Medium
+TKT-1165,OB166,Access,21,Open,High
+TKT-1168,OB169,Hardware,20,Open,Low
+TKT-1171,OB172,Access,22,Closed,High
+TKT-1174,OB175,Account,40,Open,High
+TKT-1177,OB178,Hardware,32,Open,Medium
+TKT-1180,OB181,Network,19,In Progress,Critical
+TKT-1183,OB184,Account,45,Open,Medium
+TKT-1186,OB187,Network,18,Open,Medium
+TKT-1189,OB190,Network,47,In Progress,Medium
+TKT-1192,OB193,Access,30,In Progress,High
+TKT-1195,OB196,Access,1,Closed,Low
+TKT-1198,OB199,Network,32,In Progress,Medium

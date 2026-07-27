@@ -1,9 +1,3 @@
-This `README.md` is designed to be the professional front door for your repository. It communicates what the project is, how to set it up, and how your team is collaborating.
-
-Create a file named `README.md` in the root of your project directory and paste this content:
-
----
-
 # OnboardIQ
 
 **Transforming Employee Onboarding Data into Actionable Productivity Insights.**

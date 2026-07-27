@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import './EmployeeUpload.css';
+import { API_BASE_URL } from '../api';
 
 function EmployeeUpload() {
   const [file, setFile] = useState(null);
@@ -34,7 +35,7 @@ function EmployeeUpload() {
 
   const fetchStatus = async () => {
     try {
-      const res = await fetch('http://localhost:8000/upload/status');
+      const res = await fetch(`${API_BASE_URL}/upload/status`);
       if (res.ok) {
         const data = await res.json();
         setStatusInfo(data);
@@ -46,7 +47,7 @@ function EmployeeUpload() {
 
   const fetchEmployees = async (page = 1, search = '') => {
     try {
-      const url = `http://localhost:8000/employees?page=${page}&limit=${limit}&search=${encodeURIComponent(search)}`;
+      const url = `${API_BASE_URL}/employees?page=${page}&limit=${limit}&search=${encodeURIComponent(search)}`;
       const res = await fetch(url);
       if (res.ok) {
         const data = await res.json();
@@ -122,7 +123,7 @@ function EmployeeUpload() {
     }, 150);
 
     try {
-      const response = await fetch('http://localhost:8000/upload', {
+      const response = await fetch(`${API_BASE_URL}/upload`, {
         method: 'POST',
         body: formData,
       });
@@ -158,7 +159,7 @@ function EmployeeUpload() {
   const handleRestore = async () => {
     if (window.confirm("Are you sure you want to delete the uploaded dataset and restore the synthetic demo data?")) {
       try {
-        const res = await fetch('http://localhost:8000/upload', { method: 'DELETE' });
+        const res = await fetch(`${API_BASE_URL}/upload`, { method: 'DELETE' });
         if (res.ok) {
           setSuccessMessage('Demo data restored successfully');
           setErrorMessage('');
@@ -283,6 +284,7 @@ function EmployeeUpload() {
             <div className="alert error-alert animate-fade-in">
               <div className="alert-title">✗ Ingestion Failed</div>
               <p className="alert-desc">{errorMessage}</p>
+              {console.log("Error message:", errorMessage)}
             </div>
           )}
         </div>

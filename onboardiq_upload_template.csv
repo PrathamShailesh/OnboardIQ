@@ -1,0 +1,13 @@
+employee_id,employee_name,email,phone,department,designation,manager,joining_date,onboarding_status,laptop_issued,training_completed,access_granted,email_setup,onboarding_complete,github_username,slack_id,jira_id,location,employment_type,salary,experience,slack_messages,github_commits,jira_tickets_resolved,slack_reactions,github_prs_reviewed
+OB001,Aarav Mehta,aarav.mehta@example.com,+91-9000000001,Engineering,Software Engineer,Priya Nair,2026-07-01,In Progress,Yes,No,Yes,Yes,No,aaravmehta,U1001,JIRA-1001,Bengaluru,Full-Time,900000,2,68,12,3,21,2
+OB002,Diya Shah,diya.shah@example.com,+91-9000000002,Engineering,QA Engineer,Priya Nair,2026-07-01,Completed,Yes,Yes,Yes,Yes,Yes,diyashah,U1002,JIRA-1002,Bengaluru,Full-Time,780000,3,95,8,5,34,1
+OB003,Kabir Singh,kabir.singh@example.com,+91-9000000003,Engineering,Backend Engineer,Priya Nair,2026-07-08,In Progress,Yes,No,Yes,Yes,No,kabirsingh,U1003,JIRA-1003,Bengaluru,Full-Time,980000,4,42,6,1,15,0
+OB004,Meera Iyer,meera.iyer@example.com,+91-9000000004,Sales,Sales Executive,Rohan Kapoor,2026-07-08,In Progress,No,No,No,No,No,meeraiyer,U1004,JIRA-1004,Mumbai,Full-Time,650000,1,8,0,0,3,0
+OB005,Arjun Rao,arjun.rao@example.com,+91-9000000005,Sales,Account Executive,Rohan Kapoor,2026-07-10,In Progress,Yes,No,Yes,Yes,No,arjunrao,U1005,JIRA-1005,Mumbai,Full-Time,700000,2,36,0,2,11,0
+OB006,Nisha Verma,nisha.verma@example.com,+91-9000000006,Sales,Sales Operations Analyst,Rohan Kapoor,2026-06-20,Completed,Yes,Yes,Yes,Yes,Yes,nishaverma,U1006,JIRA-1006,Mumbai,Full-Time,720000,3,110,0,9,48,0
+OB007,Vikram Joshi,vikram.joshi@example.com,+91-9000000007,HR,HR Coordinator,Ananya Das,2026-07-12,In Progress,Yes,No,No,Yes,No,vikramjoshi,U1007,JIRA-1007,Pune,Full-Time,600000,1,29,0,1,12,0
+OB008,Ananya Das,ananya.das@example.com,+91-9000000008,HR,HR Manager,Neha Gupta,2026-06-15,Completed,Yes,Yes,Yes,Yes,Yes,ananyadas,U1008,JIRA-1008,Pune,Full-Time,1050000,7,124,0,14,65,0
+OB009,Rohan Malhotra,rohan.malhotra@example.com,+91-9000000009,Operations,Operations Analyst,Sana Khan,2026-07-15,In Progress,Yes,No,Yes,Yes,No,rohanmalhotra,U1009,JIRA-1009,Hyderabad,Full-Time,680000,2,53,0,4,27,0
+OB010,Sana Khan,sana.khan@example.com,+91-9000000010,Operations,Operations Manager,Neha Gupta,2026-06-10,Completed,Yes,Yes,Yes,Yes,Yes,sanakhan,U1010,JIRA-1010,Hyderabad,Full-Time,1100000,8,140,0,18,76,0
+OB011,Ishaan Gupta,ishaan.gupta@example.com,+91-9000000011,Finance,Financial Analyst,Kavita Menon,2026-07-16,In Progress,Yes,Yes,No,Yes,No,ishaangupta,U1011,JIRA-1011,Chennai,Full-Time,750000,2,47,0,3,19,0
+OB012,Kavita Menon,kavita.menon@example.com,+91-9000000012,Finance,Finance Manager,Neha Gupta,2026-06-05,Completed,Yes,Yes,Yes,Yes,Yes,kavitamenon,U1012,JIRA-1012,Chennai,Full-Time,1250000,9,118,0,16,58,0
