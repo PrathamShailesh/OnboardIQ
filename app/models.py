@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, Boolean, Float
+from sqlalchemy import Column, Integer, String, Boolean, Float, DateTime
 from app.database import Base
 
 class Employee(Base):
@@ -22,3 +22,9 @@ class Employee(Base):
     employment_type = Column(String, nullable=True)
     salary = Column(Float, nullable=True)
     experience = Column(Float, nullable=True)
+    # Timestamps for bottleneck analysis
+    laptop_issued_date = Column(String, nullable=True)
+    email_setup_date = Column(String, nullable=True)
+    access_granted_date = Column(String, nullable=True)
+    training_completed_date = Column(String, nullable=True)
+    onboarding_complete_date = Column(String, nullable=True)

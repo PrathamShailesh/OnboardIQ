@@ -561,3 +561,45 @@
   background-color: hsl(346, 80%, 60%);
 }
 
+
+/* Bottleneck Alert Styles */
+.bottleneck-alert-card {
+  background: rgba(244, 67, 54, 0.1);
+  border: 1px solid rgba(244, 67, 54, 0.3);
+  border-radius: 12px;
+  padding: 20px;
+}
+
+.alert-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+.alert-header h4 {
+  margin: 0;
+  font-size: 18px;
+  color: #fff;
+}
+
+.delay-badge {
+  background: rgba(244, 67, 54, 0.2);
+  color: #f44336;
+  padding: 6px 12px;
+  border-radius: 20px;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.alert-details {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.alert-details p {
+  margin: 0;
+  font-size: 14px;
+  color: rgba(255, 255, 255, 0.8);
+}

@@ -1,6 +1,7 @@
 import os
 import shutil
 import json
+import traceback
 import pandas as pd
 import numpy as np
 from datetime import datetime
@@ -8,6 +9,11 @@ from pathlib import Path
 from sqlalchemy.orm import Session
 from app.database import engine, SessionLocal
 from app.models import Employee
+import logging
+
+# Set up logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 # Import existing validation/preprocessing scripts
 import sys
@@ -24,6 +30,13 @@ from scripts.onboarding_quality import (
 
 UPLOAD_DIR = Path("uploads")
 METADATA_FILE = UPLOAD_DIR / "metadata.json"
+
+
+def _optional_value(row, column):
+    """Return a clean optional string value for a CSV field."""
+    value = row.get(column)
+    return None if value is None or pd.isna(value) else str(value)
+
 
 def init_upload_dir():
     """Ensure upload directory exists."""
@@ -258,37 +271,63 @@ def _legacy_process_and_validate_upload(filepath: str) -> dict:
     # Save to SQLite database
     db: Session = SessionLocal()
     try:
+        logger.info(f"Starting database insertion for {len(df_clean)} employees")
+        
         # Clear existing records
         db.query(Employee).delete()
+        logger.info("Cleared existing employee records")
         
         # Add all new active employees
-        for _, row in df_clean.iterrows():
-            emp_obj = Employee(
-                employee_id=str(row['employee_id']),
-                employee_name=str(row['employee_name']),
-                email=str(row['email']),
-                phone=str(row['phone']),
-                department=str(row['department']),
-                designation=str(row['designation']),
-                manager=str(row['manager']),
-                joining_date=str(row['joining_date']),
-                onboarding_status=str(row['onboarding_status']),
-                laptop_issued=bool(row['laptop_issued']),
-                access_granted=bool(row['access_granted']),
-                github_username=str(row['github_username']),
-                slack_id=str(row['slack_id']),
-                jira_id=str(row['jira_id']),
-                location=str(row['location']),
-                employment_type=str(row['employment_type']),
-                salary=float(row['salary']) if 'salary' in row else 0.0,
-                experience=float(row['experience']) if 'experience' in row else 0.0
-            )
-            db.add(emp_obj)
+        success_count = 0
+        for idx, (_, row) in enumerate(df_clean.iterrows()):
+            try:
+                emp_obj = Employee(
+                    employee_id=str(row['employee_id']),
+                    employee_name=str(row['employee_name']),
+                    email=str(row['email']),
+                    phone=str(row['phone']),
+                    department=str(row['department']),
+                    designation=str(row['designation']),
+                    manager=str(row['manager']),
+                    joining_date=str(row['joining_date']),
+                    onboarding_status=str(row['onboarding_status']),
+                    laptop_issued=bool(row['laptop_issued']),
+                    access_granted=bool(row['access_granted']),
+                    github_username=str(row['github_username']),
+                    slack_id=str(row['slack_id']),
+                    jira_id=str(row['jira_id']),
+                    location=str(row['location']),
+                    employment_type=str(row['employment_type']),
+                    salary=float(row['salary']) if 'salary' in row else 0.0,
+                    experience=float(row['experience']) if 'experience' in row else 0.0,
+                    laptop_issued_date=_optional_value(row, 'laptop_issued_date'),
+                    email_setup_date=_optional_value(row, 'email_setup_date'),
+                    access_granted_date=_optional_value(row, 'access_granted_date'),
+                    training_completed_date=_optional_value(row, 'training_completed_date'),
+                    onboarding_complete_date=_optional_value(row, 'onboarding_complete_date')
+                )
+                db.add(emp_obj)
+                success_count += 1
+                
+                if (idx + 1) % 50 == 0:
+                    logger.info(f"Processed {idx + 1}/{len(df_clean)} employees")
+                    
+            except Exception as emp_error:
+                logger.error(f"Error inserting employee {row.get('employee_id', 'unknown')}: {str(emp_error)}")
+                logger.error(f"Row data: {row.to_dict()}")
+                raise
+        
         db.commit()
+        logger.info(f"Successfully committed {success_count} employees to database")
+        
     except Exception as e:
         db.rollback()
-        report["error"] = "Database error"
-        report["issues"].append(f"Failed to write to database: {str(e)}")
+        error_detail = f"Database error: {str(e)}"
+        logger.error(error_detail)
+        logger.error(f"Error type: {type(e).__name__}")
+        logger.error(traceback.format_exc())
+        report["error"] = error_detail
+        report["issues"].append(error_detail)
         return report
     finally:
         db.close()
