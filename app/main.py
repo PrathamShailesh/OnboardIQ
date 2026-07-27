@@ -3,6 +3,7 @@ import shutil
 from fastapi import FastAPI, UploadFile, File, HTTPException, Depends
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
+from sqlalchemy import inspect, text
 import pandas as pd
 from typing import Optional
 from datetime import datetime
@@ -15,9 +16,33 @@ from app.upload_manager import (
     restore_synthetic_data,
     init_upload_dir
 )
+from app.bottleneck_analyzer import BottleneckAnalyzer
 
 # Ensure tables are created in SQLite
 Base.metadata.create_all(bind=engine)
+
+
+def migrate_employee_schema():
+    """Add optional employee fields to existing local SQLite databases."""
+    if engine.dialect.name != "sqlite":
+        return
+
+    timestamp_columns = (
+        "laptop_issued_date",
+        "email_setup_date",
+        "access_granted_date",
+        "training_completed_date",
+        "onboarding_complete_date",
+    )
+    existing_columns = {column["name"] for column in inspect(engine).get_columns("employees")}
+
+    with engine.begin() as connection:
+        for column in timestamp_columns:
+            if column not in existing_columns:
+                connection.execute(text(f"ALTER TABLE employees ADD COLUMN {column} TEXT"))
+
+
+migrate_employee_schema()
 
 app = FastAPI(title="OnboardIQ Analytics API")
 
@@ -258,7 +283,7 @@ def get_dashboard_summary():
     # Verify employee alignment
     total_onboardees = len(df_emp)
     
-    # Onboarding milestones counts
+    # Calculate time-based metrics for each stage using bottleneck analyzer
     laptop_count = int(df_onb['Laptop Issued'].sum()) if 'Laptop Issued' in df_onb.columns else 0
     training_count = int(df_onb['Training Completed'].sum()) if 'Training Completed' in df_onb.columns else 0
     access_count = int(df_onb['Security Access Granted'].sum()) if 'Security Access Granted' in df_onb.columns else 0
@@ -436,3 +461,117 @@ def get_support_details():
         })
     
     return {"data": data}
+
+
+
+@app.get('/bottlenecks/analysis')
+def get_bottleneck_analysis():
+    '''Returns comprehensive bottleneck analysis including rankings, delays, and risk predictions.'''
+    employees_path = 'data/processed/employees_processed.csv'
+    onboarding_path = 'data/processed/onboarding_processed.csv'
+    support_path = 'data/processed/support_processed.csv'
+    
+    # Fallback to raw data if processed doesn't exist
+    if not os.path.exists(employees_path):
+        employees_path = 'data/employees.csv'
+    if not os.path.exists(onboarding_path):
+        onboarding_path = 'data/onboarding.csv'
+    if not os.path.exists(support_path):
+        support_path = 'data/support.csv'
+    
+    try:
+        analyzer = BottleneckAnalyzer(employees_path, onboarding_path, support_path)
+        report = analyzer.generate_bottleneck_report()
+        return report
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f'Failed to generate bottleneck analysis: {str(e)}')
+
+
+@app.get('/bottlenecks/ranking')
+def get_bottleneck_ranking():
+    '''Returns ranked list of bottlenecks by severity.'''
+    employees_path = 'data/processed/employees_processed.csv'
+    onboarding_path = 'data/processed/onboarding_processed.csv'
+    
+    if not os.path.exists(employees_path):
+        employees_path = 'data/employees.csv'
+    if not os.path.exists(onboarding_path):
+        onboarding_path = 'data/onboarding.csv'
+    
+    try:
+        analyzer = BottleneckAnalyzer(employees_path, onboarding_path)
+        df, _ = analyzer.load_data()
+        delays = analyzer.calculate_stage_delays(df)
+        ranked = analyzer.rank_bottlenecks(delays)
+        return {'bottlenecks': ranked}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f'Failed to generate bottleneck ranking: {str(e)}')
+
+
+@app.get('/bottlenecks/department-delays')
+def get_department_delays():
+    '''Returns average onboarding delays by department.'''
+    employees_path = 'data/processed/employees_processed.csv'
+    onboarding_path = 'data/processed/onboarding_processed.csv'
+    
+    if not os.path.exists(employees_path):
+        employees_path = 'data/employees.csv'
+    if not os.path.exists(onboarding_path):
+        onboarding_path = 'data/onboarding.csv'
+    
+    try:
+        analyzer = BottleneckAnalyzer(employees_path, onboarding_path)
+        df, _ = analyzer.load_data()
+        delays = analyzer.calculate_department_delays(df)
+        return {'department_delays': delays}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f'Failed to generate department delays: {str(e)}')
+
+
+@app.get('/bottlenecks/risk-employees')
+def get_risk_employees():
+    '''Returns employees at risk of exceeding 30-day onboarding.'''
+    employees_path = 'data/processed/employees_processed.csv'
+    onboarding_path = 'data/processed/onboarding_processed.csv'
+    
+    if not os.path.exists(employees_path):
+        employees_path = 'data/employees.csv'
+    if not os.path.exists(onboarding_path):
+        onboarding_path = 'data/onboarding.csv'
+    
+    try:
+        analyzer = BottleneckAnalyzer(employees_path, onboarding_path)
+        df, _ = analyzer.load_data()
+        risk_employees = analyzer.identify_risk_employees(df)
+        return {'risk_employees': risk_employees}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f'Failed to identify risk employees: {str(e)}')
+
+
+@app.get('/bottlenecks/root-causes')
+def get_root_causes():
+    '''Returns analysis of root causes for delays.'''
+    employees_path = 'data/processed/employees_processed.csv'
+    onboarding_path = 'data/processed/onboarding_processed.csv'
+    support_path = 'data/processed/support_processed.csv'
+    
+    if not os.path.exists(employees_path):
+        employees_path = 'data/employees.csv'
+    if not os.path.exists(onboarding_path):
+        onboarding_path = 'data/onboarding.csv'
+    if not os.path.exists(support_path):
+        support_path = 'data/support.csv'
+    
+    try:
+        analyzer = BottleneckAnalyzer(employees_path, onboarding_path, support_path)
+        df, df_supp = analyzer.load_data()
+        root_causes = analyzer.analyze_root_causes(df, df_supp)
+        return root_causes
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f'Failed to analyze root causes: {str(e)}')
+
+
+
+
+
+

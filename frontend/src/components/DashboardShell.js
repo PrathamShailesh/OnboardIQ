@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import Sidebar from './Sidebar';
 import EmployeeUpload from './EmployeeUpload';
+import BottleneckInsights from './BottleneckInsights';
+import BottleneckAlert from './BottleneckAlert';
 import { API_BASE_URL } from '../api';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, PieChart, Pie, Cell, LineChart, Line } from 'recharts';
 import './DashboardShell.css';
@@ -266,6 +268,7 @@ function DashboardShell() {
                   ))}
                 </div>
               </div>
+              <BottleneckAlert stageDelays={dashboardStats.stageDelays} />
             </div>
           </div>
         );
@@ -359,6 +362,7 @@ function DashboardShell() {
                   </tbody>
                 </table>
               </div>
+              <BottleneckAlert stageDelays={dashboardStats.stageDelays} />
             </div>
           </div>
         );
@@ -431,6 +435,7 @@ function DashboardShell() {
                   </tbody>
                 </table>
               </div>
+              <BottleneckAlert stageDelays={dashboardStats.stageDelays} />
             </div>
           </div>
         );
@@ -534,9 +539,12 @@ function DashboardShell() {
                   </tbody>
                 </table>
               </div>
+              <BottleneckAlert stageDelays={dashboardStats.stageDelays} />
             </div>
           </div>
         );
+      case 'bottlenecks':
+        return <BottleneckInsights />;
       case 'upload':
         return <EmployeeUpload />;
       default:
@@ -584,3 +592,8 @@ function DashboardShell() {
 }
 
 export default DashboardShell;
+
+
+
+
+
