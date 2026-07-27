@@ -21,10 +21,16 @@ Base.metadata.create_all(bind=engine)
 
 app = FastAPI(title="OnboardIQ Analytics API")
 
-# Enable CORS for the React frontend
+# Enable CORS for the React frontend. React uses port 3001 when port 3000 is
+# already occupied, so both local development URLs must be allowed.
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000"],
+    allow_origins=[
+        "http://localhost:3000",
+        "http://localhost:3001",
+        "http://127.0.0.1:3000",
+        "http://127.0.0.1:3001",
+    ],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -337,3 +343,96 @@ def get_dashboard_summary():
         "ticket_categories": ticket_categories,
         "total_employees": total_onboardees
     }
+
+@app.get("/onboarding/details")
+def get_onboarding_details():
+    """Returns detailed onboarding progress data for all employees."""
+    onboarding_path = "data/processed/onboarding_processed.csv"
+    employees_path = "data/processed/employees_processed.csv"
+    
+    if not os.path.exists(onboarding_path) or not os.path.exists(employees_path):
+        return {"data": []}
+    
+    df_onb = pd.read_csv(onboarding_path)
+    df_emp = pd.read_csv(employees_path)
+    
+    # Merge with employee data for context
+    df_merged = df_emp.merge(df_onb, left_on='ID', right_on='Employee ID', how='left')
+    
+    data = []
+    for _, row in df_merged.iterrows():
+        data.append({
+            "employee_id": int(row['ID']),
+            "employee_name": row['Name'],
+            "department": row['Department'],
+            "joining_date": row['Joining Date'],
+            "laptop_issued": bool(row['Laptop Issued']) if 'Laptop Issued' in row else False,
+            "training_completed": bool(row['Training Completed']) if 'Training Completed' in row else False,
+            "access_granted": bool(row['Security Access Granted']) if 'Security Access Granted' in row else False,
+            "email_setup": bool(row['Email Setup']) if 'Email Setup' in row else False,
+            "onboarding_complete": bool(row['Onboarding Complete']) if 'Onboarding Complete' in row else False
+        })
+    
+    return {"data": data}
+
+@app.get("/tools/details")
+def get_tools_details():
+    """Returns detailed tool engagement data for all employees."""
+    tools_path = "data/processed/tools_processed.csv"
+    employees_path = "data/processed/employees_processed.csv"
+    
+    if not os.path.exists(tools_path) or not os.path.exists(employees_path):
+        return {"data": []}
+    
+    df_tools = pd.read_csv(tools_path)
+    df_emp = pd.read_csv(employees_path)
+    
+    # Merge with employee data for context
+    df_merged = df_emp.merge(df_tools, left_on='ID', right_on='Employee ID', how='left')
+    
+    data = []
+    for _, row in df_merged.iterrows():
+        data.append({
+            "employee_id": int(row['ID']),
+            "employee_name": row['Name'],
+            "department": row['Department'],
+            "slack_messages": int(row['Slack Messages']) if 'Slack Messages' in row and pd.notna(row['Slack Messages']) else 0,
+            "github_commits": int(row['GitHub Commits']) if 'GitHub Commits' in row and pd.notna(row['GitHub Commits']) else 0,
+            "jira_tickets_resolved": int(row['Jira Tickets Resolved']) if 'Jira Tickets Resolved' in row and pd.notna(row['Jira Tickets Resolved']) else 0,
+            "slack_reactions": int(row['Slack Reactions']) if 'Slack Reactions' in row and pd.notna(row['Slack Reactions']) else 0,
+            "github_prs_reviewed": int(row['GitHub PRs Reviewed']) if 'GitHub PRs Reviewed' in row and pd.notna(row['GitHub PRs Reviewed']) else 0
+        })
+    
+    return {"data": data}
+
+@app.get("/support/details")
+def get_support_details():
+    """Returns detailed support ticket data."""
+    support_path = "data/processed/support_processed.csv"
+    employees_path = "data/processed/employees_processed.csv"
+    
+    if not os.path.exists(support_path):
+        return {"data": []}
+    
+    df_supp = pd.read_csv(support_path)
+    
+    # Try to merge with employee data if available
+    if os.path.exists(employees_path):
+        df_emp = pd.read_csv(employees_path)
+        df_merged = df_supp.merge(df_emp, left_on='Employee ID', right_on='ID', how='left')
+    else:
+        df_merged = df_supp
+    
+    data = []
+    for _, row in df_merged.iterrows():
+        data.append({
+            "ticket_id": row['Ticket ID'],
+            "employee_id": int(row['Employee ID']) if pd.notna(row['Employee ID']) else None,
+            "employee_name": row['Name'] if 'Name' in row and pd.notna(row['Name']) else f"Employee {row['Employee ID']}",
+            "issue_type": row['Issue Type'],
+            "resolution_time_hours": int(row['Resolution Time (hours)']) if 'Resolution Time (hours)' in row and pd.notna(row['Resolution Time (hours)']) else None,
+            "status": row['Status'],
+            "priority": row['Priority']
+        })
+    
+    return {"data": data}

@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import Sidebar from './Sidebar';
 import EmployeeUpload from './EmployeeUpload';
+import { API_BASE_URL } from '../api';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, PieChart, Pie, Cell, LineChart, Line } from 'recharts';
 import './DashboardShell.css';
 
 function DashboardShell() {
@@ -41,9 +43,13 @@ function DashboardShell() {
     }
   });
 
+  const [onboardingDetails, setOnboardingDetails] = useState([]);
+  const [toolsDetails, setToolsDetails] = useState([]);
+  const [supportDetails, setSupportDetails] = useState([]);
+
   const loadDashboardData = async () => {
     try {
-      const res = await fetch('http://localhost:8000/dashboard/summary');
+      const res = await fetch(`${API_BASE_URL}/dashboard/summary`);
       if (res.ok) {
         const data = await res.json();
         setDashboardStats({
@@ -66,8 +72,34 @@ function DashboardShell() {
     }
   };
 
+  const loadDetailedData = async () => {
+    try {
+      const [onbRes, toolsRes, suppRes] = await Promise.all([
+        fetch(`${API_BASE_URL}/onboarding/details`),
+        fetch(`${API_BASE_URL}/tools/details`),
+        fetch(`${API_BASE_URL}/support/details`)
+      ]);
+
+      if (onbRes.ok) {
+        const onbData = await onbRes.json();
+        setOnboardingDetails(onbData.data || []);
+      }
+      if (toolsRes.ok) {
+        const toolsData = await toolsRes.json();
+        setToolsDetails(toolsData.data || []);
+      }
+      if (suppRes.ok) {
+        const suppData = await suppRes.json();
+        setSupportDetails(suppData.data || []);
+      }
+    } catch (err) {
+      console.error('Error loading detailed data:', err);
+    }
+  };
+
   useEffect(() => {
     loadDashboardData();
+    loadDetailedData();
   }, [activeTab]);
 
   const stats = [
@@ -272,6 +304,62 @@ function DashboardShell() {
                 </div>
               </div>
             </div>
+
+            <div className="data-panel glass-panel" style={{ marginTop: '20px' }}>
+              <h3>Onboarding Progress by Department</h3>
+              <div style={{ height: '300px', marginTop: '20px' }}>
+                <BarChart width={800} height={300} data={dashboardStats.cohorts}>
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis dataKey="name" />
+                  <YAxis />
+                  <Tooltip />
+                  <Legend />
+                  <Bar dataKey="completion_rate" name="Completion Rate %" fill="#8884d8" />
+                </BarChart>
+              </div>
+            </div>
+
+            <div className="data-panel glass-panel" style={{ marginTop: '20px' }}>
+              <h3>Employee Onboarding Status</h3>
+              <div style={{ maxHeight: '400px', overflowY: 'auto', marginTop: '20px' }}>
+                <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                  <thead>
+                    <tr style={{ borderBottom: '1px solid #ddd' }}>
+                      <th style={{ padding: '10px', textAlign: 'left' }}>Employee</th>
+                      <th style={{ padding: '10px', textAlign: 'left' }}>Department</th>
+                      <th style={{ padding: '10px', textAlign: 'left' }}>Laptop</th>
+                      <th style={{ padding: '10px', textAlign: 'left' }}>Training</th>
+                      <th style={{ padding: '10px', textAlign: 'left' }}>Access</th>
+                      <th style={{ padding: '10px', textAlign: 'left' }}>Email</th>
+                      <th style={{ padding: '10px', textAlign: 'left' }}>Complete</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {onboardingDetails.slice(0, 20).map((emp, idx) => (
+                      <tr key={idx} style={{ borderBottom: '1px solid #eee' }}>
+                        <td style={{ padding: '10px' }}>{emp.employee_name}</td>
+                        <td style={{ padding: '10px' }}>{emp.department}</td>
+                        <td style={{ padding: '10px' }}>{emp.laptop_issued ? '✓' : '✗'}</td>
+                        <td style={{ padding: '10px' }}>{emp.training_completed ? '✓' : '✗'}</td>
+                        <td style={{ padding: '10px' }}>{emp.access_granted ? '✓' : '✗'}</td>
+                        <td style={{ padding: '10px' }}>{emp.email_setup ? '✓' : '✗'}</td>
+                        <td style={{ padding: '10px' }}>
+                          <span style={{ 
+                            padding: '4px 8px', 
+                            borderRadius: '12px', 
+                            backgroundColor: emp.onboarding_complete ? '#4caf50' : '#ff9800',
+                            color: 'white',
+                            fontSize: '12px'
+                          }}>
+                            {emp.onboarding_complete ? 'Complete' : 'In Progress'}
+                          </span>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
           </div>
         );
       case 'tools':
@@ -294,6 +382,54 @@ function DashboardShell() {
                 <div className="tool-badge jira">Jira</div>
                 <div className="metric-large">{dashboardStats.toolEngagement.jira_resolved}</div>
                 <div className="metric-label">Avg Tickets Resolved</div>
+              </div>
+            </div>
+
+            <div className="data-panel glass-panel" style={{ marginTop: '20px' }}>
+              <h3>Tool Engagement by Department</h3>
+              <div style={{ height: '300px', marginTop: '20px' }}>
+                <BarChart width={800} height={300} data={toolsDetails.slice(0, 10)}>
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis dataKey="employee_name" />
+                  <YAxis />
+                  <Tooltip />
+                  <Legend />
+                  <Bar dataKey="slack_messages" name="Slack Messages" fill="#4A154B" />
+                  <Bar dataKey="github_commits" name="GitHub Commits" fill="#181717" />
+                  <Bar dataKey="jira_tickets_resolved" name="Jira Tickets" fill="#0052CC" />
+                </BarChart>
+              </div>
+            </div>
+
+            <div className="data-panel glass-panel" style={{ marginTop: '20px' }}>
+              <h3>Employee Tool Usage Details</h3>
+              <div style={{ maxHeight: '400px', overflowY: 'auto', marginTop: '20px' }}>
+                <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                  <thead>
+                    <tr style={{ borderBottom: '1px solid #ddd' }}>
+                      <th style={{ padding: '10px', textAlign: 'left' }}>Employee</th>
+                      <th style={{ padding: '10px', textAlign: 'left' }}>Department</th>
+                      <th style={{ padding: '10px', textAlign: 'left' }}>Slack Msgs</th>
+                      <th style={{ padding: '10px', textAlign: 'left' }}>GitHub Commits</th>
+                      <th style={{ padding: '10px', textAlign: 'left' }}>Jira Tickets</th>
+                      <th style={{ padding: '10px', textAlign: 'left' }}>Slack Reactions</th>
+                      <th style={{ padding: '10px', textAlign: 'left' }}>PR Reviews</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {toolsDetails.slice(0, 20).map((emp, idx) => (
+                      <tr key={idx} style={{ borderBottom: '1px solid #eee' }}>
+                        <td style={{ padding: '10px' }}>{emp.employee_name}</td>
+                        <td style={{ padding: '10px' }}>{emp.department}</td>
+                        <td style={{ padding: '10px' }}>{emp.slack_messages}</td>
+                        <td style={{ padding: '10px' }}>{emp.github_commits}</td>
+                        <td style={{ padding: '10px' }}>{emp.jira_tickets_resolved}</td>
+                        <td style={{ padding: '10px' }}>{emp.slack_reactions}</td>
+                        <td style={{ padding: '10px' }}>{emp.github_prs_reviewed}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
               </div>
             </div>
           </div>
@@ -321,6 +457,83 @@ function DashboardShell() {
                   ))}
                 </div>
               )}
+            </div>
+
+            <div className="data-panel glass-panel" style={{ marginTop: '20px' }}>
+              <h3>Issue Type Distribution</h3>
+              <div style={{ height: '300px', marginTop: '20px', display: 'flex', justifyContent: 'center' }}>
+                <PieChart width={400} height={300}>
+                  <Pie
+                    data={Object.entries(dashboardStats.ticketCategories).map(([name, value]) => ({ name, value }))}
+                    cx={200}
+                    cy={150}
+                    labelLine={false}
+                    label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
+                    outerRadius={80}
+                    fill="#8884d8"
+                    dataKey="value"
+                  >
+                    {Object.entries(dashboardStats.ticketCategories).map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884D8'][index % 5]} />
+                    ))}
+                  </Pie>
+                  <Tooltip />
+                </PieChart>
+              </div>
+            </div>
+
+            <div className="data-panel glass-panel" style={{ marginTop: '20px' }}>
+              <h3>Support Ticket Details</h3>
+              <div style={{ maxHeight: '400px', overflowY: 'auto', marginTop: '20px' }}>
+                <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                  <thead>
+                    <tr style={{ borderBottom: '1px solid #ddd' }}>
+                      <th style={{ padding: '10px', textAlign: 'left' }}>Ticket ID</th>
+                      <th style={{ padding: '10px', textAlign: 'left' }}>Employee</th>
+                      <th style={{ padding: '10px', textAlign: 'left' }}>Issue Type</th>
+                      <th style={{ padding: '10px', textAlign: 'left' }}>Priority</th>
+                      <th style={{ padding: '10px', textAlign: 'left' }}>Status</th>
+                      <th style={{ padding: '10px', textAlign: 'left' }}>Resolution Time (hrs)</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {supportDetails.slice(0, 20).map((ticket, idx) => (
+                      <tr key={idx} style={{ borderBottom: '1px solid #eee' }}>
+                        <td style={{ padding: '10px' }}>{ticket.ticket_id}</td>
+                        <td style={{ padding: '10px' }}>{ticket.employee_name}</td>
+                        <td style={{ padding: '10px' }}>{ticket.issue_type}</td>
+                        <td style={{ padding: '10px' }}>
+                          <span style={{ 
+                            padding: '4px 8px', 
+                            borderRadius: '12px', 
+                            backgroundColor: ticket.priority === 'Critical' ? '#f44336' : 
+                                             ticket.priority === 'High' ? '#ff9800' : 
+                                             ticket.priority === 'Medium' ? '#2196f3' : '#4caf50',
+                            color: 'white',
+                            fontSize: '12px'
+                          }}>
+                            {ticket.priority}
+                          </span>
+                        </td>
+                        <td style={{ padding: '10px' }}>
+                          <span style={{ 
+                            padding: '4px 8px', 
+                            borderRadius: '12px', 
+                            backgroundColor: ticket.status === 'Open' ? '#f44336' : 
+                                             ticket.status === 'In Progress' ? '#ff9800' : 
+                                             ticket.status === 'Resolved' ? '#4caf50' : '#9e9e9e',
+                            color: 'white',
+                            fontSize: '12px'
+                          }}>
+                            {ticket.status}
+                          </span>
+                        </td>
+                        <td style={{ padding: '10px' }}>{ticket.resolution_time_hours || '-'}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
             </div>
           </div>
         );

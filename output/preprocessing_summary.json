@@ -1,5 +1,5 @@
 {
-  "timestamp": "2026-07-23T15:59:14.582258",
+  "timestamp": "2026-07-27T15:33:13.838906",
   "pipeline_status": "SUCCESS",
   "datasets_processed": 4,
   "datasets_successful": 4,
@@ -7,22 +7,22 @@
   "dataset_details": {
     "employees": {
       "status": "SUCCESS",
-      "rows": 10,
-      "columns": 21
+      "rows": 200,
+      "columns": 26
     },
     "onboarding": {
       "status": "SUCCESS",
-      "rows": 10,
+      "rows": 200,
       "columns": 6
     },
     "tools": {
       "status": "SUCCESS",
-      "rows": 10,
+      "rows": 200,
       "columns": 6
     },
     "support": {
       "status": "SUCCESS",
-      "rows": 4,
+      "rows": 67,
       "columns": 6
     }
   }
