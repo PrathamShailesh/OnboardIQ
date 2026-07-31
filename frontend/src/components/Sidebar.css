@@ -207,3 +207,8 @@
 .settings-btn:hover .settings-icon {
   transform: rotate(45deg);
 }
+
+.settings-btn:disabled {
+  cursor: not-allowed;
+  opacity: 0.45;
+}

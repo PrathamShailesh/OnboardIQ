@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import './EmployeeUpload.css';
 import { API_BASE_URL } from '../api';
+import { authService } from '../auth';
 
 function EmployeeUpload() {
   const [file, setFile] = useState(null);
@@ -35,7 +36,9 @@ function EmployeeUpload() {
 
   const fetchStatus = async () => {
     try {
-      const res = await fetch(`${API_BASE_URL}/upload/status`);
+      const res = await fetch(`${API_BASE_URL}/upload/status`, {
+        headers: authService.getAuthHeader()
+      });
       if (res.ok) {
         const data = await res.json();
         setStatusInfo(data);
@@ -48,7 +51,9 @@ function EmployeeUpload() {
   const fetchEmployees = async (page = 1, search = '') => {
     try {
       const url = `${API_BASE_URL}/employees?page=${page}&limit=${limit}&search=${encodeURIComponent(search)}`;
-      const res = await fetch(url);
+      const res = await fetch(url, {
+        headers: authService.getAuthHeader()
+      });
       if (res.ok) {
         const data = await res.json();
         setEmployees(data.data || []);
@@ -123,15 +128,21 @@ function EmployeeUpload() {
     }, 150);
 
     try {
+      const authHeaders = authService.getAuthHeader();
+      console.log('Upload auth headers:', authHeaders);
+      
       const response = await fetch(`${API_BASE_URL}/upload`, {
         method: 'POST',
         body: formData,
+        headers: authHeaders
       });
+      console.log("response", response)
 
       clearInterval(interval);
       setProgress(100);
 
       const result = await response.json();
+      console.log("result3", result)
       
       if (!response.ok) {
         throw new Error(result.detail || 'Failed to parse file.');
@@ -153,18 +164,21 @@ function EmployeeUpload() {
   };
 
   const handleRestore = async () => {
-    if (window.confirm("Are you sure you want to delete the uploaded dataset and restore the synthetic demo data?")) {
+    if (window.confirm("Remove the currently uploaded dataset? The dashboard will return to an empty state.")) {
       try {
-        const res = await fetch(`${API_BASE_URL}/upload`, { method: 'DELETE' });
+        const res = await fetch(`${API_BASE_URL}/upload`, { 
+          method: 'DELETE',
+          headers: authService.getAuthHeader()
+        });
         if (res.ok) {
-          setSuccessMessage('Demo data restored successfully');
+          setSuccessMessage('Uploaded dataset removed successfully');
           setErrorMessage('');
           setFile(null);
           await fetchStatus();
           await fetchEmployees(1, searchQuery);
         } else {
           const errData = await res.json();
-          setErrorMessage(errData.detail || 'Failed to restore demo data');
+          setErrorMessage(errData.detail || 'Failed to remove uploaded data');
         }
       } catch (err) {
         setErrorMessage('Failed to connect to backend server.');
@@ -197,7 +211,7 @@ function EmployeeUpload() {
               <span className="pulse-dot" /> Uploaded Dataset Active
             </span>
           ) : (
-            <span className="badge demo-badge">Synthetic Demo Data Active</span>
+            <span className="badge demo-badge">No Dataset Loaded</span>
           )}
         </div>
       </div>
@@ -259,14 +273,14 @@ function EmployeeUpload() {
             </button>
             {statusInfo.status === 'active' && (
               <button className="danger-btn" onClick={handleRestore} disabled={uploading}>
-                Restore Demo Data
+                Remove Dataset
               </button>
             )}
           </div>
 
           {successMessage && (
             <div className="alert success-alert animate-fade-in">
-              <div className="alert-title">✓ Upload Successful</div>
+              <div className="alert-title">Upload Successful</div>
               <div className="alert-content">
                 <p>Rows Imported: <strong>{statusInfo.rows}</strong></p>
                 <p>Columns Imported: <strong>{statusInfo.columns}</strong></p>
@@ -278,9 +292,8 @@ function EmployeeUpload() {
 
           {errorMessage && (
             <div className="alert error-alert animate-fade-in">
-              <div className="alert-title">✗ Ingestion Failed</div>
+              <div className="alert-title">Ingestion Failed</div>
               <p className="alert-desc">{errorMessage}</p>
-              {console.log("Error message:", errorMessage)}
             </div>
           )}
         </div>
@@ -291,7 +304,7 @@ function EmployeeUpload() {
           <div className="metadata-grid">
             <div className="meta-item">
               <span className="meta-label">Active Source File</span>
-              <span className="meta-val">{statusInfo.active_file || 'Synthetic Demo Data'}</span>
+              <span className="meta-val">{statusInfo.active_file || 'No dataset loaded'}</span>
             </div>
             <div className="meta-item">
               <span className="meta-label">Total Employee Rows</span>
@@ -339,7 +352,7 @@ function EmployeeUpload() {
 
         {employees.length === 0 ? (
           <div className="empty-state">
-            <p>No employee records match the search filter.</p>
+            <p>{totalEmployees === 0 ? 'Upload an employee dataset to preview records here.' : 'No employee records match the search filter.'}</p>
           </div>
         ) : (
           <div className="table-wrapper">
@@ -369,8 +382,8 @@ function EmployeeUpload() {
                         {emp.onboarding_status || 'completed'}
                       </span>
                     </td>
-                    <td>{emp.laptop_issued ? '✓ Issued' : '✗ Pending'}</td>
-                    <td>{emp.access_granted ? '✓ Granted' : '✗ Denied'}</td>
+                    <td>{emp.laptop_issued ? 'Issued' : 'Pending'}</td>
+                    <td>{emp.access_granted ? 'Granted' : 'Pending'}</td>
                   </tr>
                 ))}
               </tbody>
