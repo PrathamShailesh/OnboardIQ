@@ -13,7 +13,7 @@ function BottleneckAlert({ stageDelays }) {
     <div className="data-panel glass-panel" style={{ marginTop: '20px' }}>
       <div className="panel-header">
         <h3>⚠️ Top Bottleneck Alert</h3>
-        <span className="badge">Critical</span>
+        <span className="badge">Needs attention</span>
       </div>
       <div className="bottleneck-alert-card">
         <div className="alert-header">

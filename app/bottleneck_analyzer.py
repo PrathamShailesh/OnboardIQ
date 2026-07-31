@@ -22,13 +22,9 @@ class BottleneckAnalyzer:
         self.onboarding_path = onboarding_path
         self.support_path = support_path
         
-    def load_data(self) -> Tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
-        """Load and merge employee and onboarding data."""
+    def load_data(self) -> Tuple[pd.DataFrame, pd.DataFrame]:
+        """Load employee data (df_emp already contains all necessary fields)."""
         df_emp = pd.read_csv(self.employees_path)
-        df_onb = pd.read_csv(self.onboarding_path)
-        
-        # Merge data
-        df_merged = df_emp.merge(df_onb, left_on='ID', right_on='Employee ID', how='left')
         
         # Load support data if available
         df_supp = pd.DataFrame()
@@ -38,7 +34,7 @@ class BottleneckAnalyzer:
             except:
                 pass
                 
-        return df_merged, df_supp
+        return df_emp, df_supp
     
     def calculate_stage_delays(self, df: pd.DataFrame) -> Dict[str, Dict]:
         """Calculate average delays for each onboarding stage."""
@@ -55,8 +51,8 @@ class BottleneckAnalyzer:
             if column not in df.columns:
                 continue
                 
-            # Simulate delays based on completion rates and random variation
-            # In production, this would use actual timestamp data
+            # Until timestamp history is available, derive a repeatable delay
+            # estimate from the actual completion rate.
             completed = df[column].sum()
             total = len(df)
             completion_rate = completed / max(total, 1)
@@ -65,21 +61,19 @@ class BottleneckAnalyzer:
             base_delay = self.EXPECTED_TIMES[stage_key]
             simulated_delay = base_delay * (1 + (1 - completion_rate) * 2)
             
-            # Add some random variation for realism
-            delay_with_variance = simulated_delay * np.random.uniform(0.8, 1.2)
             
             # Calculate affected employees (those not completed)
             affected = total - completed
             
             # Find departments most affected
             if 'Department' in df.columns:
-                dept_affected = df[~df[column]].groupby('Department').size().to_dict()
+                bool_col = df[column].astype(bool); dept_affected = df[~bool_col].groupby('Department').size().to_dict()
             else:
                 dept_affected = {}
             
             delays[stage_key] = {
                 'stage_name': column.replace(' Issued', '').replace(' Setup', '').replace(' Granted', '').replace(' Completed', ''),
-                'average_delay': round(delay_with_variance, 1),
+                'average_delay': round(simulated_delay, 1),
                 'expected_time': base_delay,
                 'affected_employees': int(affected),
                 'completion_rate': round(completion_rate * 100, 1),
@@ -96,12 +90,11 @@ class BottleneckAnalyzer:
             reverse=True
         )
         
-        # Add rank and trend
+        # Historical snapshots are required for trend comparisons.
         for idx, bottleneck in enumerate(ranked, 1):
             bottleneck['rank'] = idx
-            # Simulate trend (in production, compare with historical data)
-            bottleneck['trend'] = np.random.choice(['up', 'down', 'stable'], p=[0.3, 0.4, 0.3])
-            bottleneck['trend_percentage'] = round(np.random.uniform(5, 25), 1) if bottleneck['trend'] != 'stable' else 0
+            bottleneck['trend'] = 'unavailable'
+            bottleneck['trend_percentage'] = 0
         
         return ranked
     

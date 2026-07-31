@@ -1,3 +1,3 @@
-// Docker/WSL is already using port 8000 on this machine.  The OnboardIQ API
-// therefore runs on 8001 by default.  Set REACT_APP_API_URL to override it.
-export const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:8001';
+// In production, serve the API from the same domain or provide its public URL
+// through REACT_APP_API_URL. The development proxy handles local requests.
+export const API_BASE_URL = process.env.REACT_APP_API_URL || '';

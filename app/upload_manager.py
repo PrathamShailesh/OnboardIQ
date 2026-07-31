@@ -32,6 +32,18 @@ UPLOAD_DIR = Path("uploads")
 METADATA_FILE = UPLOAD_DIR / "metadata.json"
 
 
+def get_user_upload_dir(user_id: int) -> Path:
+    """Get user-specific upload directory."""
+    user_dir = UPLOAD_DIR / f"user_{user_id}"
+    user_dir.mkdir(parents=True, exist_ok=True)
+    return user_dir
+
+
+def get_user_metadata_file(user_id: int) -> Path:
+    """Get user-specific metadata file."""
+    return get_user_upload_dir(user_id) / "metadata.json"
+
+
 def _optional_value(row, column):
     """Return a clean optional string value for a CSV field."""
     value = row.get(column)
@@ -42,12 +54,16 @@ def init_upload_dir():
     """Ensure upload directory exists."""
     os.makedirs(UPLOAD_DIR, exist_ok=True)
 
-def get_upload_status() -> dict:
-    """Returns the current upload status from metadata.json."""
-    init_upload_dir()
-    if METADATA_FILE.exists():
+def get_upload_status(user_id: int = None) -> dict:
+    """Returns the current upload status from user-specific metadata.json."""
+    if user_id:
+        metadata_file = get_user_metadata_file(user_id)
+    else:
+        metadata_file = METADATA_FILE
+    
+    if metadata_file.exists():
         try:
-            with open(METADATA_FILE, "r") as f:
+            with open(metadata_file, "r") as f:
                 return json.load(f)
         except Exception:
             pass
@@ -61,10 +77,14 @@ def get_upload_status() -> dict:
         "processing_time_ms": 0
     }
 
-def save_upload_status(status_dict: dict):
-    """Saves the upload status to metadata.json."""
-    init_upload_dir()
-    with open(METADATA_FILE, "w") as f:
+def save_upload_status(status_dict: dict, user_id: int = None):
+    """Saves the upload status to user-specific metadata.json."""
+    if user_id:
+        metadata_file = get_user_metadata_file(user_id)
+    else:
+        metadata_file = METADATA_FILE
+    
+    with open(metadata_file, "w") as f:
         json.dump(status_dict, f, indent=2)
 
 def clean_processed_dir():
@@ -72,21 +92,14 @@ def clean_processed_dir():
     # We don't need active backup because we can restore by regenerating synthetic data
     pass
 
-def restore_synthetic_data():
-    """Restores synthetic datasets using the data generation script."""
-    import subprocess
-    cwd = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
-    
-    # 1. Regenerate raw data
-    subprocess.run([sys.executable, "data/generate_data.py"], cwd=cwd, check=True)
-    
-    # 2. Run preprocess pipeline
-    subprocess.run([sys.executable, "scripts/preprocess_pipeline.py"], cwd=cwd, check=True)
-
-    # 3. Clear database table
+def restore_synthetic_data(user_id: int = None):
+    """Remove the active upload and return the application to an empty state."""
     db = SessionLocal()
     try:
-        db.query(Employee).delete()
+        if user_id:
+            db.query(Employee).filter(Employee.user_id == user_id).delete()
+        else:
+            db.query(Employee).delete()
         db.commit()
     except Exception as e:
         db.rollback()
@@ -94,7 +107,8 @@ def restore_synthetic_data():
     finally:
         db.close()
 
-    # 4. Save metadata status
+    # Keep any local processing files out of the active application state.
+    # Dashboard endpoints only read processed data when an upload is active.
     save_upload_status({
         "status": "idle",
         "active_file": None,
@@ -103,9 +117,9 @@ def restore_synthetic_data():
         "upload_time": None,
         "validation_passed": False,
         "processing_time_ms": 0
-    })
+    }, user_id=user_id)
 
-def _legacy_process_and_validate_upload(filepath: str) -> dict:
+def process_and_validate_upload(filepath: str, user_id: int = None) -> dict:
     """
     Loads, validates, and processes the uploaded employee dataset.
     Integrates existing scripts: validate_intake, profile_data, handle_missing, type_enforcement.
@@ -171,12 +185,40 @@ def _legacy_process_and_validate_upload(filepath: str) -> dict:
             column_mapping[col] = 'laptop_issued'
         elif norm in ['access_granted', 'security_access_granted', 'security access granted', 'access granted']:
             column_mapping[col] = 'access_granted'
+        elif norm in ['training_completed', 'training completed']:
+            column_mapping[col] = 'training_completed'
+        elif norm in ['email_setup', 'email setup']:
+            column_mapping[col] = 'email_setup'
+        elif norm in ['onboarding_complete', 'onboarding complete']:
+            column_mapping[col] = 'onboarding_complete'
+        elif norm in ['department']:
+            column_mapping[col] = 'department'
         elif norm in ['github_username', 'github username']:
             column_mapping[col] = 'github_username'
         elif norm in ['slack_id', 'slack id']:
             column_mapping[col] = 'slack_id'
         elif norm in ['jira_id', 'jira id']:
             column_mapping[col] = 'jira_id'
+        elif norm in ['slack_messages', 'slack messages']:
+            column_mapping[col] = 'slack_messages'
+        elif norm in ['github_commits', 'github commits']:
+            column_mapping[col] = 'github_commits'
+        elif norm in ['jira_tickets_resolved', 'jira tickets resolved']:
+            column_mapping[col] = 'jira_tickets_resolved'
+        elif norm in ['slack_reactions', 'slack reactions']:
+            column_mapping[col] = 'slack_reactions'
+        elif norm in ['github_prs_reviewed', 'github prs reviewed', 'github_pr_reviewed']:
+            column_mapping[col] = 'github_prs_reviewed'
+        elif norm in ['laptop_issued_date', 'laptop issued date']:
+            column_mapping[col] = 'laptop_issued_date'
+        elif norm in ['email_setup_date', 'email setup date']:
+            column_mapping[col] = 'email_setup_date'
+        elif norm in ['access_granted_date', 'access granted date', 'security_access_granted_date']:
+            column_mapping[col] = 'access_granted_date'
+        elif norm in ['training_completed_date', 'training completed date']:
+            column_mapping[col] = 'training_completed_date'
+        elif norm in ['onboarding_complete_date', 'onboarding complete date']:
+            column_mapping[col] = 'onboarding_complete_date'
         else:
             column_mapping[col] = norm
 
@@ -245,17 +287,8 @@ def _legacy_process_and_validate_upload(filepath: str) -> dict:
                 '1.0': True, '0.0': False, 'true.0': True, 'false.0': False
             }).fillna(False)
         else:
-            # Generate default values dynamically so that tabs have complete fields
-            if col == 'laptop_issued':
-                df_clean[col] = True
-            elif col == 'access_granted':
-                df_clean[col] = True
-            elif col == 'training_completed':
-                df_clean[col] = True
-            elif col == 'email_setup':
-                df_clean[col] = True
-            elif col == 'onboarding_complete':
-                df_clean[col] = True
+            # Missing fields default to False to reflect actual data state
+            df_clean[col] = False
 
     # Fill basic missing strings
     string_cols = ['email', 'phone', 'department', 'designation', 'manager', 'onboarding_status', 'github_username', 'slack_id', 'jira_id', 'location', 'employment_type']
@@ -272,16 +305,23 @@ def _legacy_process_and_validate_upload(filepath: str) -> dict:
     db: Session = SessionLocal()
     try:
         logger.info(f"Starting database insertion for {len(df_clean)} employees")
+        logger.info(f"DataFrame columns: {df_clean.columns.tolist()}")
+        logger.info(f"DataFrame shape: {df_clean.shape}")
         
-        # Clear existing records
-        db.query(Employee).delete()
-        logger.info("Cleared existing employee records")
+        # Clear existing records for this user only
+        if user_id:
+            cleared = db.query(Employee).filter(Employee.user_id == user_id).delete()
+            logger.info(f"Cleared {cleared} existing employee records for user {user_id}")
+        else:
+            cleared = db.query(Employee).delete()
+            logger.info(f"Cleared {cleared} all employee records (no user_id provided)")
         
         # Add all new active employees
         success_count = 0
         for idx, (_, row) in enumerate(df_clean.iterrows()):
             try:
                 emp_obj = Employee(
+                    user_id=user_id if user_id else 1,  # Default to user 1 if not provided
                     employee_id=str(row['employee_id']),
                     employee_name=str(row['employee_name']),
                     email=str(row['email']),
@@ -293,6 +333,9 @@ def _legacy_process_and_validate_upload(filepath: str) -> dict:
                     onboarding_status=str(row['onboarding_status']),
                     laptop_issued=bool(row['laptop_issued']),
                     access_granted=bool(row['access_granted']),
+                    training_completed=bool(row['training_completed']) if 'training_completed' in row else False,
+                    email_setup=bool(row['email_setup']) if 'email_setup' in row else False,
+                    onboarding_complete=bool(row['onboarding_complete']) if 'onboarding_complete' in row else False,
                     github_username=str(row['github_username']),
                     slack_id=str(row['slack_id']),
                     jira_id=str(row['jira_id']),
@@ -300,6 +343,11 @@ def _legacy_process_and_validate_upload(filepath: str) -> dict:
                     employment_type=str(row['employment_type']),
                     salary=float(row['salary']) if 'salary' in row else 0.0,
                     experience=float(row['experience']) if 'experience' in row else 0.0,
+                    slack_messages=int(row['slack_messages']) if 'slack_messages' in row else 0,
+                    github_commits=int(row['github_commits']) if 'github_commits' in row else 0,
+                    jira_tickets_resolved=int(row['jira_tickets_resolved']) if 'jira_tickets_resolved' in row else 0,
+                    slack_reactions=int(row['slack_reactions']) if 'slack_reactions' in row else 0,
+                    github_prs_reviewed=int(row['github_prs_reviewed']) if 'github_prs_reviewed' in row else 0,
                     laptop_issued_date=_optional_value(row, 'laptop_issued_date'),
                     email_setup_date=_optional_value(row, 'email_setup_date'),
                     access_granted_date=_optional_value(row, 'access_granted_date'),
@@ -347,51 +395,36 @@ def _legacy_process_and_validate_upload(filepath: str) -> dict:
     df_onb_out = pd.DataFrame({
         'Employee ID': df_clean['employee_id'],
         'Laptop Issued': df_clean['laptop_issued'],
-        'Training Completed': df_clean.get('training_completed', True),
+        'Training Completed': df_clean.get('training_completed', False),
         'Security Access Granted': df_clean['access_granted'],
-        'Email Setup': df_clean.get('email_setup', True),
-        'Onboarding Complete': df_clean.get('onboarding_complete', True)
+        'Email Setup': df_clean.get('email_setup', False),
+        'Onboarding Complete': df_clean.get('onboarding_complete', False)
     })
     df_onb_out.to_csv(processed_dir / "onboarding_processed.csv", index=False)
 
     # Write tools_processed.csv
     # Schema: Employee ID, Slack Messages, GitHub Commits, Jira Tickets Resolved, Slack Reactions, GitHub PRs Reviewed
-    # If the sheet doesn't contain tool fields, generate deterministic mock tools usage
-    np.random.seed(42)
+    # Only use actual tool data from uploaded file, default to 0 if not provided
     df_tools_out = pd.DataFrame({
         'Employee ID': df_clean['employee_id'],
-        'Slack Messages': df_clean.get('slack_messages', [np.random.randint(50, 450) for _ in range(len(df_clean))]),
-        'GitHub Commits': df_clean.get('github_commits', [np.random.randint(5, 95) for _ in range(len(df_clean))]),
-        'Jira Tickets Resolved': df_clean.get('jira_tickets_resolved', [np.random.randint(0, 45) for _ in range(len(df_clean))]),
-        'Slack Reactions': df_clean.get('slack_reactions', [np.random.randint(10, 190) for _ in range(len(df_clean))]),
-        'GitHub PRs Reviewed': df_clean.get('github_prs_reviewed', [np.random.randint(0, 25) for _ in range(len(df_clean))])
+        'Slack Messages': df_clean.get('slack_messages', 0),
+        'GitHub Commits': df_clean.get('github_commits', 0),
+        'Jira Tickets Resolved': df_clean.get('jira_tickets_resolved', 0),
+        'Slack Reactions': df_clean.get('slack_reactions', 0),
+        'GitHub PRs Reviewed': df_clean.get('github_prs_reviewed', 0)
     })
     df_tools_out.to_csv(processed_dir / "tools_processed.csv", index=False)
 
     # Write support_processed.csv
     # Schema: Ticket ID, Employee ID, Issue Type, Resolution Time (hours), Status, Priority
-    support_tickets = []
-    # Create tickets for a portion of active onboardees
-    for idx, emp_id in enumerate(df_clean['employee_id']):
-        if idx % 3 == 0: # 33% of new hires get IT tickets
-            support_tickets.append({
-                'Ticket ID': f'TKT-{1000 + idx:04d}',
-                'Employee ID': emp_id,
-                'Issue Type': np.random.choice(['Hardware', 'Software', 'Network', 'Access', 'Account']),
-                'Resolution Time (hours)': np.random.randint(1, 48),
-                'Status': np.random.choice(['Open', 'In Progress', 'Resolved', 'Closed']),
-                'Priority': np.random.choice(['Low', 'Medium', 'High', 'Critical'])
-            })
-    if not support_tickets:
-        support_tickets.append({
-            'Ticket ID': 'TKT-9999',
-            'Employee ID': df_clean['employee_id'].iloc[0],
-            'Issue Type': 'Hardware',
-            'Resolution Time (hours)': 24,
-            'Status': 'Resolved',
-            'Priority': 'Medium'
-        })
-    df_supp_out = pd.DataFrame(support_tickets)
+    # Only create support data if actually provided in uploaded file
+    support_cols = ['ticket_id', 'employee_id', 'issue_type', 'resolution_time_hours', 'status', 'priority']
+    if all(col in df_clean.columns for col in support_cols):
+        df_supp_out = df_clean[support_cols].copy()
+        df_supp_out.columns = ['Ticket ID', 'Employee ID', 'Issue Type', 'Resolution Time (hours)', 'Status', 'Priority']
+    else:
+        # No support data provided - create empty file with correct schema
+        df_supp_out = pd.DataFrame(columns=['Ticket ID', 'Employee ID', 'Issue Type', 'Resolution Time (hours)', 'Status', 'Priority'])
     df_supp_out.to_csv(processed_dir / "support_processed.csv", index=False)
 
     # Save summary report (preprocess_pipeline output simulation)
@@ -430,90 +463,7 @@ def _legacy_process_and_validate_upload(filepath: str) -> dict:
         "upload_time": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
         "validation_passed": True,
         "processing_time_ms": processing_time_ms
-    })
+    }, user_id=user_id)
 
     return report
 
-
-def _db_value(row: pd.Series, column: str, default=None):
-    """Return a database-safe scalar without hiding missing source data."""
-    value = row.get(column, default)
-    return default if pd.isna(value) else value
-
-
-def process_and_validate_upload(filepath: str) -> dict:
-    """Process a CSV/XLSX upload through the auditable onboarding quality pipeline."""
-    started = datetime.now()
-    report = {"passed": False, "error": None, "rows": 0, "columns": 0,
-              "filename": os.path.basename(filepath), "issues": []}
-    existence = validate_file_exists(filepath)
-    if not existence["passed"]:
-        report["error"] = existence["message"]
-        return report
-    fmt = validate_file_format(filepath, allowed_formats=["csv", "xlsx"])
-    if not fmt["passed"]:
-        report["error"] = "Unsupported file type"
-        report["issues"].append(fmt["message"])
-        return report
-    try:
-        if fmt["detected_format"] == "csv":
-            source = pd.read_csv(filepath, encoding=detect_encoding(filepath).get("encoding", "utf-8"))
-        else:
-            source = pd.read_excel(filepath)
-    except Exception:
-        report["error"] = "Corrupted file"
-        report["issues"].append("The uploaded file could not be read as a tabular dataset.")
-        return report
-    if source.empty:
-        report["error"] = "Corrupted file"
-        report["issues"].append("The uploaded dataset contains zero rows.")
-        return report
-    cleaned, quality = process_employee_dataframe(source)
-    required = {"employee_id", "employee_name"}
-    if not required.issubset(cleaned.columns):
-        report["error"] = "Missing required columns"
-        report["issues"].append("The dataset must contain employee_id and employee_name.")
-        quality["warnings"].append(report["issues"][-1])
-        save_quality_report(quality)
-        return report
-    valid = cleaned.loc[cleaned["passes_all_checks"]].copy()
-    if valid.empty:
-        report["error"] = "No valid employee records"
-        report["issues"].append("All rows failed validation; see output/validation_failures.csv for reasons.")
-        save_quality_report(quality)
-        return report
-    quality["kpis"] = calculate_kpis(valid)
-    save_quality_report(quality)
-    db: Session = SessionLocal()
-    try:
-        db.query(Employee).delete()
-        for _, row in valid.iterrows():
-            db.add(Employee(
-                employee_id=str(_db_value(row, "employee_id", "")), employee_name=str(_db_value(row, "employee_name", "")),
-                email=_db_value(row, "email"), phone=_db_value(row, "phone"), department=_db_value(row, "department"),
-                designation=_db_value(row, "designation"), manager=_db_value(row, "manager"), joining_date=_db_value(row, "joining_date"),
-                onboarding_status=_db_value(row, "onboarding_status"), laptop_issued=_db_value(row, "laptop_issued"),
-                access_granted=_db_value(row, "access_granted"), github_username=_db_value(row, "github_username"),
-                slack_id=_db_value(row, "slack_id"), jira_id=_db_value(row, "jira_id"), location=_db_value(row, "location"),
-                employment_type=_db_value(row, "employment_type"), salary=_db_value(row, "salary"), experience=_db_value(row, "experience")))
-        db.commit()
-    except Exception as exc:
-        db.rollback()
-        report["error"] = "Database error"
-        report["issues"].append(f"Failed to persist valid records: {exc}")
-        return report
-    finally:
-        db.close()
-    processed = Path("data/processed")
-    processed.mkdir(parents=True, exist_ok=True)
-    valid[["employee_id", "employee_name"] + [c for c in ("department", "joining_date") if c in valid]].rename(columns={"employee_id": "ID", "employee_name": "Name", "department": "Department", "joining_date": "Joining Date"}).to_csv(processed / "employees_processed.csv", index=False)
-    onboarding_columns = [c for c in ["employee_id", "laptop_issued", "training_completed", "access_granted", "email_setup", "onboarding_complete"] if c in valid]
-    if onboarding_columns:
-        valid[onboarding_columns].rename(columns={"employee_id": "Employee ID", "laptop_issued": "Laptop Issued", "training_completed": "Training Completed", "access_granted": "Security Access Granted", "email_setup": "Email Setup", "onboarding_complete": "Onboarding Complete"}).to_csv(processed / "onboarding_processed.csv", index=False)
-    # Do not manufacture tool use or tickets. Remove stale upload artifacts when absent.
-    for stale in (processed / "tools_processed.csv", processed / "support_processed.csv"):
-        if stale.exists(): stale.unlink()
-    elapsed = int((datetime.now() - started).total_seconds() * 1000)
-    report.update({"passed": True, "rows": len(valid), "columns": len(source) and len(source.columns), "quality_report": quality})
-    save_upload_status({"status": "active", "active_file": report["filename"], "rows": len(valid), "columns": len(source.columns), "upload_time": datetime.now().strftime("%Y-%m-%d %H:%M:%S"), "validation_passed": True, "processing_time_ms": elapsed, "quality_report": "output/data_quality_report.json"})
-    return report

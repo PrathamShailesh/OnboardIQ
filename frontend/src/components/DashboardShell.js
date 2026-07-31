@@ -4,45 +4,37 @@ import EmployeeUpload from './EmployeeUpload';
 import BottleneckInsights from './BottleneckInsights';
 import BottleneckAlert from './BottleneckAlert';
 import { API_BASE_URL } from '../api';
+import { authService } from '../auth';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, PieChart, Pie, Cell, LineChart, Line } from 'recharts';
 import './DashboardShell.css';
 
-function DashboardShell() {
+function DashboardShell({ onLogout }) {
   const [activeTab, setActiveTab] = useState('overview');
   const [dashboardStats, setDashboardStats] = useState({
-    activeOnboardees: '142',
-    activeChange: '+12% this week',
-    onboardingSpeed: '22.4 Days',
-    speedChange: '-3.2 days vs last month',
-    toolAdoption: '84.8%',
-    toolChange: '+4.5% vs average',
-    openTickets: '18',
-    ticketsChange: '+3 new today',
-    cohorts: [
-      { name: 'Engineering Cohort Q3', code: 'ENG', members: 12, completion_rate: 84 },
-      { name: 'Operations Cohort Q3', code: 'OPS', members: 8, completion_rate: 92 },
-      { name: 'Sales & Growth Cohort Q3', code: 'SLS', members: 15, completion_rate: 71 }
-    ],
+    activeOnboardees: '0',
+    activeChange: 'No dataset loaded',
+    onboardingSpeed: '—',
+    speedChange: 'Upload data to calculate',
+    toolAdoption: '—',
+    toolChange: 'Upload data to calculate',
+    openTickets: '0',
+    ticketsChange: 'No dataset loaded',
+    cohorts: [],
     milestones: {
-      laptop: 42,
-      training: 38,
-      access: 40,
-      email: 44,
-      complete: 35,
-      total: 50
+      laptop: 0,
+      training: 0,
+      access: 0,
+      email: 0,
+      complete: 0,
+      total: 0
     },
     toolEngagement: {
-      slack_messages: 234,
-      github_commits: 48,
-      jira_resolved: 18
+      slack_messages: 0,
+      github_commits: 0,
+      jira_resolved: 0
     },
-    ticketCategories: {
-      'Hardware': 8,
-      'Software': 4,
-      'Network': 3,
-      'Access': 2,
-      'Account': 1
-    }
+    ticketCategories: {},
+    stageDelays: {}
   });
 
   const [onboardingDetails, setOnboardingDetails] = useState([]);
@@ -51,51 +43,88 @@ function DashboardShell() {
 
   const loadDashboardData = async () => {
     try {
-      const res = await fetch(`${API_BASE_URL}/dashboard/summary`);
+      const res = await fetch(`${API_BASE_URL}/dashboard/summary`, {
+        headers: authService.getAuthHeader()
+      });
       if (res.ok) {
         const data = await res.json();
         setDashboardStats({
           activeOnboardees: String(data.active_onboardees),
-          activeChange: data.total_employees ? `Out of ${data.total_employees} active` : '+12% this week',
+          activeChange: data.total_employees ? `${data.total_employees} employees in the current dataset` : 'No dataset loaded',
           onboardingSpeed: data.avg_onboarding_speed,
-          speedChange: 'Overall completed avg speed',
+          speedChange: 'Estimated from onboarding completion',
           toolAdoption: data.tool_adoption_rate,
-          toolChange: 'VC / Chat active registration',
+          toolChange: 'Employees active in a tracked tool',
           openTickets: String(data.open_tickets),
-          ticketsChange: 'IT setup unresolved tickets',
+          ticketsChange: 'Open or in-progress IT requests',
           cohorts: data.cohorts,
           milestones: data.onboarding_milestones,
           toolEngagement: data.tool_engagement,
-          ticketCategories: data.ticket_categories
+          ticketCategories: data.ticket_categories,
+          stageDelays: data.stage_delays || {}
         });
+      } else {
+        console.error('API error:', res.status, res.statusText);
+        setDashboardStats(prev => ({
+          ...prev,
+          activeChange: 'Error loading data',
+          onboardingSpeed: 'Error',
+          toolAdoption: 'Error',
+          openTickets: 'Error'
+        }));
       }
     } catch (err) {
       console.error('Error loading dashboard data:', err);
+      setDashboardStats(prev => ({
+        ...prev,
+        activeChange: 'Connection error',
+        onboardingSpeed: 'Error',
+        toolAdoption: 'Error',
+        openTickets: 'Error'
+      }));
     }
   };
 
   const loadDetailedData = async () => {
     try {
       const [onbRes, toolsRes, suppRes] = await Promise.all([
-        fetch(`${API_BASE_URL}/onboarding/details`),
-        fetch(`${API_BASE_URL}/tools/details`),
-        fetch(`${API_BASE_URL}/support/details`)
+        fetch(`${API_BASE_URL}/onboarding/details`, {
+          headers: authService.getAuthHeader()
+        }),
+        fetch(`${API_BASE_URL}/tools/details`, {
+          headers: authService.getAuthHeader()
+        }),
+        fetch(`${API_BASE_URL}/support/details`, {
+          headers: authService.getAuthHeader()
+        })
       ]);
 
       if (onbRes.ok) {
         const onbData = await onbRes.json();
         setOnboardingDetails(onbData.data || []);
+      } else {
+        console.error('Onboarding details API error:', onbRes.status);
+        setOnboardingDetails([]);
       }
       if (toolsRes.ok) {
         const toolsData = await toolsRes.json();
         setToolsDetails(toolsData.data || []);
+      } else {
+        console.error('Tools details API error:', toolsRes.status);
+        setToolsDetails([]);
       }
       if (suppRes.ok) {
         const suppData = await suppRes.json();
         setSupportDetails(suppData.data || []);
+      } else {
+        console.error('Support details API error:', suppRes.status);
+        setSupportDetails([]);
       }
     } catch (err) {
       console.error('Error loading detailed data:', err);
+      setOnboardingDetails([]);
+      setToolsDetails([]);
+      setSupportDetails([]);
     }
   };
 
@@ -206,7 +235,7 @@ function DashboardShell() {
               <div className="data-panel main-panel glass-panel">
                 <div className="panel-header">
                   <h3>Onboarding Bottlenecks & Progress</h3>
-                  <span className="badge">Realtime</span>
+                  <span className="badge">Current dataset</span>
                 </div>
                 
                 <div className="progress-checklist-summary">
@@ -256,17 +285,24 @@ function DashboardShell() {
                 <div className="panel-header">
                   <h3>Recent Cohorts</h3>
                 </div>
-                <div className="cohorts-list">
-                  {dashboardStats.cohorts.map((cohort, idx) => (
-                    <div key={idx} className="cohort-item">
-                      <div className={`cohort-avatar font-${cohort.code.toLowerCase()}`}>{cohort.code}</div>
-                      <div className="cohort-details">
-                        <h4>{cohort.name}</h4>
-                        <p>{cohort.members} members • {cohort.completion_rate}% completion</p>
+                {dashboardStats.cohorts.length === 0 ? (
+                  <div className="empty-state">
+                    <p>No department/cohort data is available</p>
+                    <p className="empty-state-sub">Upload a dataset with department information to view cohort analytics</p>
+                  </div>
+                ) : (
+                  <div className="cohorts-list">
+                    {dashboardStats.cohorts.map((cohort, idx) => (
+                      <div key={idx} className="cohort-item">
+                        <div className={`cohort-avatar font-${cohort.code.toLowerCase()}`}>{cohort.code}</div>
+                        <div className="cohort-details">
+                          <h4>{cohort.name}</h4>
+                          <p>{cohort.members} members • {cohort.completion_rate}% completion</p>
+                        </div>
                       </div>
-                    </div>
-                  ))}
-                </div>
+                    ))}
+                  </div>
+                )}
               </div>
               <BottleneckAlert stageDelays={dashboardStats.stageDelays} />
             </div>
@@ -325,42 +361,49 @@ function DashboardShell() {
             <div className="data-panel glass-panel" style={{ marginTop: '20px' }}>
               <h3>Employee Onboarding Status</h3>
               <div style={{ maxHeight: '400px', overflowY: 'auto', marginTop: '20px' }}>
-                <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-                  <thead>
-                    <tr style={{ borderBottom: '1px solid #ddd' }}>
-                      <th style={{ padding: '10px', textAlign: 'left' }}>Employee</th>
-                      <th style={{ padding: '10px', textAlign: 'left' }}>Department</th>
-                      <th style={{ padding: '10px', textAlign: 'left' }}>Laptop</th>
-                      <th style={{ padding: '10px', textAlign: 'left' }}>Training</th>
-                      <th style={{ padding: '10px', textAlign: 'left' }}>Access</th>
-                      <th style={{ padding: '10px', textAlign: 'left' }}>Email</th>
-                      <th style={{ padding: '10px', textAlign: 'left' }}>Complete</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {onboardingDetails.slice(0, 20).map((emp, idx) => (
-                      <tr key={idx} style={{ borderBottom: '1px solid #eee' }}>
-                        <td style={{ padding: '10px' }}>{emp.employee_name}</td>
-                        <td style={{ padding: '10px' }}>{emp.department}</td>
-                        <td style={{ padding: '10px' }}>{emp.laptop_issued ? '✓' : '✗'}</td>
-                        <td style={{ padding: '10px' }}>{emp.training_completed ? '✓' : '✗'}</td>
-                        <td style={{ padding: '10px' }}>{emp.access_granted ? '✓' : '✗'}</td>
-                        <td style={{ padding: '10px' }}>{emp.email_setup ? '✓' : '✗'}</td>
-                        <td style={{ padding: '10px' }}>
-                          <span style={{ 
-                            padding: '4px 8px', 
-                            borderRadius: '12px', 
-                            backgroundColor: emp.onboarding_complete ? '#4caf50' : '#ff9800',
-                            color: 'white',
-                            fontSize: '12px'
-                          }}>
-                            {emp.onboarding_complete ? 'Complete' : 'In Progress'}
-                          </span>
-                        </td>
+                {onboardingDetails.length === 0 ? (
+                  <div className="empty-state">
+                    <p>No employee data available</p>
+                    <p className="empty-state-sub">Upload a dataset to view onboarding progress</p>
+                  </div>
+                ) : (
+                  <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                    <thead>
+                      <tr style={{ borderBottom: '1px solid #ddd' }}>
+                        <th style={{ padding: '10px', textAlign: 'left' }}>Employee</th>
+                        <th style={{ padding: '10px', textAlign: 'left' }}>Department</th>
+                        <th style={{ padding: '10px', textAlign: 'left' }}>Laptop</th>
+                        <th style={{ padding: '10px', textAlign: 'left' }}>Training</th>
+                        <th style={{ padding: '10px', textAlign: 'left' }}>Access</th>
+                        <th style={{ padding: '10px', textAlign: 'left' }}>Email</th>
+                        <th style={{ padding: '10px', textAlign: 'left' }}>Complete</th>
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
+                    </thead>
+                    <tbody>
+                      {onboardingDetails.slice(0, 20).map((emp, idx) => (
+                        <tr key={idx} style={{ borderBottom: '1px solid #eee' }}>
+                          <td style={{ padding: '10px' }}>{emp.employee_name}</td>
+                          <td style={{ padding: '10px' }}>{emp.department}</td>
+                          <td style={{ padding: '10px' }}>{emp.laptop_issued ? '✓' : '✗'}</td>
+                          <td style={{ padding: '10px' }}>{emp.training_completed ? '✓' : '✗'}</td>
+                          <td style={{ padding: '10px' }}>{emp.access_granted ? '✓' : '✗'}</td>
+                          <td style={{ padding: '10px' }}>{emp.email_setup ? '✓' : '✗'}</td>
+                          <td style={{ padding: '10px' }}>
+                            <span style={{ 
+                              padding: '4px 8px', 
+                              borderRadius: '12px', 
+                              backgroundColor: emp.onboarding_complete ? '#4caf50' : '#ff9800',
+                              color: 'white',
+                              fontSize: '12px'
+                            }}>
+                              {emp.onboarding_complete ? 'Complete' : 'In Progress'}
+                            </span>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                )}
               </div>
               <BottleneckAlert stageDelays={dashboardStats.stageDelays} />
             </div>
@@ -408,32 +451,39 @@ function DashboardShell() {
             <div className="data-panel glass-panel" style={{ marginTop: '20px' }}>
               <h3>Employee Tool Usage Details</h3>
               <div style={{ maxHeight: '400px', overflowY: 'auto', marginTop: '20px' }}>
-                <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-                  <thead>
-                    <tr style={{ borderBottom: '1px solid #ddd' }}>
-                      <th style={{ padding: '10px', textAlign: 'left' }}>Employee</th>
-                      <th style={{ padding: '10px', textAlign: 'left' }}>Department</th>
-                      <th style={{ padding: '10px', textAlign: 'left' }}>Slack Msgs</th>
-                      <th style={{ padding: '10px', textAlign: 'left' }}>GitHub Commits</th>
-                      <th style={{ padding: '10px', textAlign: 'left' }}>Jira Tickets</th>
-                      <th style={{ padding: '10px', textAlign: 'left' }}>Slack Reactions</th>
-                      <th style={{ padding: '10px', textAlign: 'left' }}>PR Reviews</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {toolsDetails.slice(0, 20).map((emp, idx) => (
-                      <tr key={idx} style={{ borderBottom: '1px solid #eee' }}>
-                        <td style={{ padding: '10px' }}>{emp.employee_name}</td>
-                        <td style={{ padding: '10px' }}>{emp.department}</td>
-                        <td style={{ padding: '10px' }}>{emp.slack_messages}</td>
-                        <td style={{ padding: '10px' }}>{emp.github_commits}</td>
-                        <td style={{ padding: '10px' }}>{emp.jira_tickets_resolved}</td>
-                        <td style={{ padding: '10px' }}>{emp.slack_reactions}</td>
-                        <td style={{ padding: '10px' }}>{emp.github_prs_reviewed}</td>
+                {toolsDetails.length === 0 ? (
+                  <div className="empty-state">
+                    <p>No tool usage data available</p>
+                    <p className="empty-state-sub">Upload a dataset with tool engagement fields (slack_messages, github_commits, jira_tickets_resolved)</p>
+                  </div>
+                ) : (
+                  <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                    <thead>
+                      <tr style={{ borderBottom: '1px solid #ddd' }}>
+                        <th style={{ padding: '10px', textAlign: 'left' }}>Employee</th>
+                        <th style={{ padding: '10px', textAlign: 'left' }}>Department</th>
+                        <th style={{ padding: '10px', textAlign: 'left' }}>Slack Msgs</th>
+                        <th style={{ padding: '10px', textAlign: 'left' }}>GitHub Commits</th>
+                        <th style={{ padding: '10px', textAlign: 'left' }}>Jira Tickets</th>
+                        <th style={{ padding: '10px', textAlign: 'left' }}>Slack Reactions</th>
+                        <th style={{ padding: '10px', textAlign: 'left' }}>PR Reviews</th>
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
+                    </thead>
+                    <tbody>
+                      {toolsDetails.slice(0, 20).map((emp, idx) => (
+                        <tr key={idx} style={{ borderBottom: '1px solid #eee' }}>
+                          <td style={{ padding: '10px' }}>{emp.employee_name}</td>
+                          <td style={{ padding: '10px' }}>{emp.department}</td>
+                          <td style={{ padding: '10px' }}>{emp.slack_messages}</td>
+                          <td style={{ padding: '10px' }}>{emp.github_commits}</td>
+                          <td style={{ padding: '10px' }}>{emp.jira_tickets_resolved}</td>
+                          <td style={{ padding: '10px' }}>{emp.slack_reactions}</td>
+                          <td style={{ padding: '10px' }}>{emp.github_prs_reviewed}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                )}
               </div>
               <BottleneckAlert stageDelays={dashboardStats.stageDelays} />
             </div>
@@ -490,54 +540,61 @@ function DashboardShell() {
             <div className="data-panel glass-panel" style={{ marginTop: '20px' }}>
               <h3>Support Ticket Details</h3>
               <div style={{ maxHeight: '400px', overflowY: 'auto', marginTop: '20px' }}>
-                <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-                  <thead>
-                    <tr style={{ borderBottom: '1px solid #ddd' }}>
-                      <th style={{ padding: '10px', textAlign: 'left' }}>Ticket ID</th>
-                      <th style={{ padding: '10px', textAlign: 'left' }}>Employee</th>
-                      <th style={{ padding: '10px', textAlign: 'left' }}>Issue Type</th>
-                      <th style={{ padding: '10px', textAlign: 'left' }}>Priority</th>
-                      <th style={{ padding: '10px', textAlign: 'left' }}>Status</th>
-                      <th style={{ padding: '10px', textAlign: 'left' }}>Resolution Time (hrs)</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {supportDetails.slice(0, 20).map((ticket, idx) => (
-                      <tr key={idx} style={{ borderBottom: '1px solid #eee' }}>
-                        <td style={{ padding: '10px' }}>{ticket.ticket_id}</td>
-                        <td style={{ padding: '10px' }}>{ticket.employee_name}</td>
-                        <td style={{ padding: '10px' }}>{ticket.issue_type}</td>
-                        <td style={{ padding: '10px' }}>
-                          <span style={{ 
-                            padding: '4px 8px', 
-                            borderRadius: '12px', 
-                            backgroundColor: ticket.priority === 'Critical' ? '#f44336' : 
-                                             ticket.priority === 'High' ? '#ff9800' : 
-                                             ticket.priority === 'Medium' ? '#2196f3' : '#4caf50',
-                            color: 'white',
-                            fontSize: '12px'
-                          }}>
-                            {ticket.priority}
-                          </span>
-                        </td>
-                        <td style={{ padding: '10px' }}>
-                          <span style={{ 
-                            padding: '4px 8px', 
-                            borderRadius: '12px', 
-                            backgroundColor: ticket.status === 'Open' ? '#f44336' : 
-                                             ticket.status === 'In Progress' ? '#ff9800' : 
-                                             ticket.status === 'Resolved' ? '#4caf50' : '#9e9e9e',
-                            color: 'white',
-                            fontSize: '12px'
-                          }}>
-                            {ticket.status}
-                          </span>
-                        </td>
-                        <td style={{ padding: '10px' }}>{ticket.resolution_time_hours || '-'}</td>
+                {supportDetails.length === 0 ? (
+                  <div className="empty-state">
+                    <p>No support ticket data available</p>
+                    <p className="empty-state-sub">Upload a dataset with support ticket fields (ticket_id, issue_type, status, priority)</p>
+                  </div>
+                ) : (
+                  <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                    <thead>
+                      <tr style={{ borderBottom: '1px solid #ddd' }}>
+                        <th style={{ padding: '10px', textAlign: 'left' }}>Ticket ID</th>
+                        <th style={{ padding: '10px', textAlign: 'left' }}>Employee</th>
+                        <th style={{ padding: '10px', textAlign: 'left' }}>Issue Type</th>
+                        <th style={{ padding: '10px', textAlign: 'left' }}>Priority</th>
+                        <th style={{ padding: '10px', textAlign: 'left' }}>Status</th>
+                        <th style={{ padding: '10px', textAlign: 'left' }}>Resolution Time (hrs)</th>
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
+                    </thead>
+                    <tbody>
+                      {supportDetails.slice(0, 20).map((ticket, idx) => (
+                        <tr key={idx} style={{ borderBottom: '1px solid #eee' }}>
+                          <td style={{ padding: '10px' }}>{ticket.ticket_id}</td>
+                          <td style={{ padding: '10px' }}>{ticket.employee_name}</td>
+                          <td style={{ padding: '10px' }}>{ticket.issue_type}</td>
+                          <td style={{ padding: '10px' }}>
+                            <span style={{ 
+                              padding: '4px 8px', 
+                              borderRadius: '12px', 
+                              backgroundColor: ticket.priority === 'Critical' ? '#f44336' : 
+                                               ticket.priority === 'High' ? '#ff9800' : 
+                                               ticket.priority === 'Medium' ? '#2196f3' : '#4caf50',
+                              color: 'white',
+                              fontSize: '12px'
+                            }}>
+                              {ticket.priority}
+                            </span>
+                          </td>
+                          <td style={{ padding: '10px' }}>
+                            <span style={{ 
+                              padding: '4px 8px', 
+                              borderRadius: '12px', 
+                              backgroundColor: ticket.status === 'Open' ? '#f44336' : 
+                                               ticket.status === 'In Progress' ? '#ff9800' : 
+                                               ticket.status === 'Resolved' ? '#4caf50' : '#9e9e9e',
+                              color: 'white',
+                              fontSize: '12px'
+                            }}>
+                              {ticket.status}
+                            </span>
+                          </td>
+                          <td style={{ padding: '10px' }}>{ticket.resolution_time_hours || '-'}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                )}
               </div>
               <BottleneckAlert stageDelays={dashboardStats.stageDelays} />
             </div>
@@ -558,29 +615,25 @@ function DashboardShell() {
       
       <div className="main-content">
         <header className="content-header glass-panel">
-          <div className="header-search">
-            <svg className="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <circle cx="11" cy="11" r="8" />
-              <line x1="21" y1="21" x2="16.65" y2="16.65" />
-            </svg>
-            <input type="text" placeholder="Search onboardees, tickets, tools..." />
+          <div>
+            <strong>Onboarding analytics</strong>
+            <p className="header-subtitle">Monitor setup progress, tool adoption, and support trends.</p>
           </div>
-
-          <div className="header-actions">
-            <button className="icon-btn" title="Notifications">
-              <span className="dot-indicator" />
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" />
-                <path d="M13.73 21a2 2 0 0 1-3.46 0" />
-              </svg>
-            </button>
-            <button className="icon-btn" title="Help & Documentation">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <circle cx="12" cy="12" r="10" />
-                <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3M12 17h.01" />
-              </svg>
-            </button>
-          </div>
+          <button 
+            onClick={onLogout}
+            style={{
+              padding: '8px 16px',
+              backgroundColor: '#f44336',
+              color: 'white',
+              border: 'none',
+              borderRadius: '6px',
+              cursor: 'pointer',
+              fontSize: '14px',
+              fontWeight: '500'
+            }}
+          >
+            Logout
+          </button>
         </header>
 
         <main className="content-body">

@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { API_BASE_URL } from '../api';
+import { authService } from '../auth';
 import './BottleneckInsights.css';
 
 function BottleneckInsights() {
@@ -14,7 +15,9 @@ function BottleneckInsights() {
   const loadBottleneckData = async () => {
     try {
       setLoading(true);
-      const res = await fetch(`${API_BASE_URL}/bottlenecks/analysis`);
+      const res = await fetch(`${API_BASE_URL}/bottlenecks/analysis`, {
+        headers: authService.getAuthHeader()
+      });
       if (res.ok) {
         const data = await res.json();
         setBottleneckData(data);
@@ -52,6 +55,14 @@ function BottleneckInsights() {
   }
 
   const { bottlenecks, department_delays, risk_employees, root_causes, summary } = bottleneckData;
+
+  if (summary.total_employees === 0) {
+    return (
+      <div className="bottleneck-insights error">
+        <p>Upload an employee dataset to generate bottleneck analysis.</p>
+      </div>
+    );
+  }
 
   return (
     <div className=" bottleneck-insights">
