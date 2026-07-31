@@ -22,6 +22,11 @@ from scripts.validate_intake import validate_file_exists, validate_file_format, 
 from scripts.profile_data import profile_nulls_and_duplicates, identify_quality_issues
 from scripts.handle_missing import analyze_missing_values
 from scripts.type_enforcement import enforce_types
+from scripts.onboarding_quality import (
+    process_employee_dataframe,
+    save_quality_report,
+    calculate_kpis,
+)
 
 UPLOAD_DIR = Path("uploads")
 METADATA_FILE = UPLOAD_DIR / "metadata.json"
@@ -461,3 +466,4 @@ def process_and_validate_upload(filepath: str, user_id: int = None) -> dict:
     }, user_id=user_id)
 
     return report
+

@@ -192,7 +192,7 @@ async def upload_dataset(file: UploadFile = File(...), db: Session = Depends(get
             
     if not report["passed"]:
         # Raise 400 Bad Request with details
-        raise HTTPException(status_code=400, detail=report["error"])
+        raise HTTPException(status_code=400, detail={"message": report["error"], "issues": report.get("issues", [])})
         
     return {
         "status": "success",
