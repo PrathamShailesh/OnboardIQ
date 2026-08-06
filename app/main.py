@@ -61,17 +61,14 @@ def migrate_employee_schema():
         # For PostgreSQL: migrate from employee_id PK to auto-increment id PK
         if engine.dialect.name == "postgresql":
             # Check if employee_id is still the primary key
-            primary_key_constraint = None
-            for constraint in inspect(engine).get_pk_constraint("employees")['constrained_columns']:
-                if constraint == "employee_id":
-                    primary_key_constraint = "employee_id"
-                    break
+            pk_constraint = inspect(engine).get_pk_constraint("employees")
+            primary_key_columns = pk_constraint['constrained_columns']
             
-            if primary_key_constraint == "employee_id" and "id" not in existing_columns:
-                # Add new id column as serial (auto-increment)
-                connection.execute(text("ALTER TABLE employees ADD COLUMN id SERIAL PRIMARY KEY"))
-                # Drop old primary key constraint
+            if primary_key_columns == ["employee_id"] and "id" not in existing_columns:
+                # First, drop the existing primary key constraint
                 connection.execute(text("ALTER TABLE employees DROP CONSTRAINT employees_pkey"))
+                # Add new id column as serial (auto-increment) PRIMARY KEY
+                connection.execute(text("ALTER TABLE employees ADD COLUMN id SERIAL PRIMARY KEY"))
                 # Make employee_id nullable and indexed
                 connection.execute(text("ALTER TABLE employees ALTER COLUMN employee_id DROP NOT NULL"))
                 connection.execute(text("CREATE INDEX ix_employees_employee_id ON employees(employee_id)"))
@@ -80,6 +77,12 @@ def migrate_employee_schema():
                     connection.execute(text("ALTER TABLE employees ADD CONSTRAINT _employee_user_uc UNIQUE (employee_id, user_id)"))
                 except Exception:
                     pass  # Constraint may already exist
+            elif "id" not in existing_columns:
+                # If table already has different PK structure, just add id column
+                try:
+                    connection.execute(text("ALTER TABLE employees ADD COLUMN id SERIAL PRIMARY KEY"))
+                except Exception:
+                    pass  # May already exist or have different structure
         
         # For SQLite: handle migration
         if engine.dialect.name == "sqlite":
