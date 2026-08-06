@@ -89,13 +89,66 @@ def migrate_employee_schema():
             # Add user_id column if it doesn't exist
             if "user_id" not in existing_columns:
                 connection.execute(text("ALTER TABLE employees ADD COLUMN user_id INTEGER"))
-                connection.execute(text("ALTER TABLE employees ADD COLUMN FOREIGN KEY (user_id) REFERENCES users(id)"))
             
             # Add id column if it doesn't exist (SQLite doesn't support ALTER COLUMN for PK changes easily)
-            # For SQLite, we'll need to recreate the table if employee_id is PK
+            # Need to recreate the table
             if "id" not in existing_columns:
-                # This is a simplified migration - in production you'd want to recreate the table
-                pass
+                # Get all existing data
+                result = connection.execute(text("SELECT * FROM employees"))
+                columns = [col[0] for col in result.cursor.description]
+                rows = result.fetchall()
+                
+                # Drop old table
+                connection.execute(text("DROP TABLE employees"))
+                
+                # Create new table with id as primary key
+                connection.execute(text("""
+                    CREATE TABLE employees (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        employee_id VARCHAR NOT NULL,
+                        user_id INTEGER NOT NULL,
+                        employee_name VARCHAR NOT NULL,
+                        email VARCHAR,
+                        phone VARCHAR,
+                        department VARCHAR,
+                        designation VARCHAR,
+                        manager VARCHAR,
+                        joining_date VARCHAR,
+                        onboarding_status VARCHAR,
+                        laptop_issued BOOLEAN DEFAULT 0,
+                        access_granted BOOLEAN DEFAULT 0,
+                        github_username VARCHAR,
+                        slack_id VARCHAR,
+                        jira_id VARCHAR,
+                        location VARCHAR,
+                        employment_type VARCHAR,
+                        salary FLOAT,
+                        experience FLOAT,
+                        training_completed BOOLEAN DEFAULT 0,
+                        email_setup BOOLEAN DEFAULT 0,
+                        onboarding_complete BOOLEAN DEFAULT 0,
+                        slack_messages INTEGER DEFAULT 0,
+                        github_commits INTEGER DEFAULT 0,
+                        jira_tickets_resolved INTEGER DEFAULT 0,
+                        slack_reactions INTEGER DEFAULT 0,
+                        github_prs_reviewed INTEGER DEFAULT 0,
+                        laptop_issued_date VARCHAR,
+                        email_setup_date VARCHAR,
+                        access_granted_date VARCHAR,
+                        training_completed_date VARCHAR,
+                        onboarding_complete_date VARCHAR,
+                        UNIQUE(employee_id, user_id),
+                        FOREIGN KEY (user_id) REFERENCES users(id)
+                    )
+                """))
+                
+                # Re-insert data if we had any
+                if rows and columns:
+                    column_names = ", ".join(columns)
+                    placeholders = ", ".join(["?" for _ in columns])
+                    insert_sql = f"INSERT INTO employees ({column_names}) VALUES ({placeholders})"
+                    for row in rows:
+                        connection.execute(text(insert_sql), row)
         
         # Add timestamp columns if they don't exist
         for column in timestamp_columns:
