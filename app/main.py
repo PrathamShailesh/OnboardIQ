@@ -71,7 +71,10 @@ def migrate_employee_schema():
                 connection.execute(text("ALTER TABLE employees ADD COLUMN id SERIAL PRIMARY KEY"))
                 # Make employee_id nullable and indexed
                 connection.execute(text("ALTER TABLE employees ALTER COLUMN employee_id DROP NOT NULL"))
-                connection.execute(text("CREATE INDEX ix_employees_employee_id ON employees(employee_id)"))
+                try:
+                    connection.execute(text("CREATE INDEX ix_employees_employee_id ON employees(employee_id)"))
+                except Exception:
+                    pass  # Index may already exist
                 # Add unique constraint on (employee_id, user_id)
                 try:
                     connection.execute(text("ALTER TABLE employees ADD CONSTRAINT _employee_user_uc UNIQUE (employee_id, user_id)"))
