@@ -1,3 +1,4 @@
+import os
 from datetime import datetime, timedelta
 from typing import Optional
 from jose import JWTError, jwt
@@ -12,7 +13,7 @@ from app.models import User
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 # JWT configuration
-SECRET_KEY = "your-secret-key-change-this-in-production"  # Should be environment variable
+SECRET_KEY = os.getenv("AUTH_SECRET", "development-only-secret-change-before-deploy")
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 30
 
@@ -70,11 +71,13 @@ def get_current_user(
     
     try:
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
-        user_id: int = payload.get("sub")
+        subject = payload.get("sub")
+        # Handle string user_id from JWT (user.id is now sent as str in main.py)
+        user_id = int(subject) if subject is not None else None
         print(f"DEBUG: Decoded payload, user_id: {user_id}")
         if user_id is None:
             raise credentials_exception
-    except JWTError as e:
+    except (JWTError, ValueError) as e:
         print(f"DEBUG: JWT decode error: {e}")
         raise credentials_exception
     

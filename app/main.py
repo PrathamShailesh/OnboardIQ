@@ -1,4 +1,5 @@
 import os
+from dotenv import load_dotenv
 import shutil
 from fastapi import FastAPI, UploadFile, File, HTTPException, Depends
 from fastapi.middleware.cors import CORSMiddleware
@@ -8,6 +9,9 @@ import pandas as pd
 from typing import Optional
 from datetime import datetime
 from pydantic import BaseModel
+
+# Load environment variables from .env file
+load_dotenv()
 
 # Pydantic models for authentication requests
 class SignupRequest(BaseModel):
@@ -99,6 +103,14 @@ def read_root():
         "upload_status": get_upload_status()  # Public endpoint, no user_id
     }
 
+@app.get("/health")
+def health_check():
+    """Health check endpoint for deployment monitoring (Render, etc.)"""
+    return {
+        "status": "healthy",
+        "timestamp": datetime.now().isoformat()
+    }
+
 # Authentication endpoints
 @app.post("/auth/signup")
 def signup(request: SignupRequest, db: Session = Depends(get_db)):
@@ -134,7 +146,9 @@ def login(request: LoginRequest, db: Session = Depends(get_db)):
             headers={"WWW-Authenticate": "Bearer"},
         )
     
-    access_token = create_access_token(data={"sub": user.id})
+    # JWT subject claims must be strings. Using an integer here causes strict
+    # JWT validators to reject an otherwise valid bearer token.
+    access_token = create_access_token(data={"sub": str(user.id)})
     return {
         "access_token": access_token,
         "token_type": "bearer",
@@ -158,9 +172,13 @@ def read_users_me(current_user: User = Depends(get_current_active_user)):
     }
 
 @app.post("/upload")
-async def upload_dataset(file: UploadFile = File(...), db: Session = Depends(get_db)):  # Temporarily removed auth for debugging
-    # Use user-specific upload directory (temporarily using user_id=1 for debugging)
-    user_upload_dir = get_user_upload_dir(1)
+async def upload_dataset(
+    file: UploadFile = File(...), 
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_active_user)
+):
+    # Use user-specific upload directory
+    user_upload_dir = get_user_upload_dir(current_user.id)
     user_upload_dir.mkdir(parents=True, exist_ok=True)
     
     # 1. Verify file extension
@@ -180,8 +198,8 @@ async def upload_dataset(file: UploadFile = File(...), db: Session = Depends(get
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to save file: {str(e)}")
         
-    # 3. Parse and run validation/preprocessing with user_id (temporarily using user_id=1 for debugging)
-    report = process_and_validate_upload(str(temp_filepath), user_id=1)
+    # 3. Parse and run validation/preprocessing with user_id
+    report = process_and_validate_upload(str(temp_filepath), user_id=current_user.id)
     
     # Clean up temp file
     if os.path.exists(temp_filepath):
@@ -202,13 +220,19 @@ async def upload_dataset(file: UploadFile = File(...), db: Session = Depends(get
     }
 
 @app.get("/upload/status")
-def upload_status(db: Session = Depends(get_db)):  # Temporarily removed auth for debugging
-    return get_upload_status(1)  # Temporarily using user_id=1
+def upload_status(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_active_user)
+):
+    return get_upload_status(current_user.id)
 
 @app.delete("/upload")
-def delete_upload(db: Session = Depends(get_db)):  # Temporarily removed auth for debugging
+def delete_upload(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_active_user)
+):
     try:
-        restore_synthetic_data(1)  # Temporarily using user_id=1
+        restore_synthetic_data(current_user.id)
         return {"status": "success", "message": "Uploaded dataset removed"}
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to remove uploaded data: {str(e)}")
@@ -218,14 +242,15 @@ def list_employees(
     db: Session = Depends(get_db), 
     page: int = 1, 
     limit: int = 10,
-    search: Optional[str] = None
-):  # Temporarily removed auth for debugging
-    status = get_upload_status(1)  # Temporarily using user_id=1
+    search: Optional[str] = None,
+    current_user: User = Depends(get_current_active_user)
+):
+    status = get_upload_status(current_user.id)
     
-    # 1. Load active data for current user (temporarily using user_id=1)
+    # 1. Load active data for current user
     if status["status"] == "active":
         # Read from SQLite database filtered by user_id
-        query = db.query(Employee).filter(Employee.user_id == 1)
+        query = db.query(Employee).filter(Employee.user_id == current_user.id)
         if search:
             query = query.filter(
                 Employee.employee_name.contains(search) | 
@@ -269,10 +294,10 @@ def list_employees(
     }
 
 @app.get("/employees/{employee_id}")
-def get_employee(employee_id: str, db: Session = Depends(get_db)):
-    status = get_upload_status()
+def get_employee(employee_id: str, db: Session = Depends(get_db), current_user: User = Depends(get_current_active_user)):
+    status = get_upload_status(current_user.id)
     if status["status"] == "active":
-        emp = db.query(Employee).filter(Employee.employee_id == employee_id).first()
+        emp = db.query(Employee).filter(Employee.employee_id == employee_id, Employee.user_id == current_user.id).first()
         if not emp:
             raise HTTPException(status_code=404, detail="Employee not found")
         return {
@@ -304,12 +329,15 @@ def get_employee(employee_id: str, db: Session = Depends(get_db)):
         raise HTTPException(status_code=404, detail="Employee not found")
 
 @app.get("/dashboard/summary")
-def get_dashboard_summary(db: Session = Depends(get_db)):  # Temporarily removed auth for debugging
+def get_dashboard_summary(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_active_user)
+):
     """Calculates all key metrics and statistics dynamically from active data for current user."""
     print("DEBUG: /dashboard/summary endpoint called")
     
-    # Get upload status for user 1 (temporarily)
-    status = get_upload_status(1)
+    # Get upload status for current user
+    status = get_upload_status(current_user.id)
     if status["status"] != "active":
         return {
             "active_onboardees": 0,
@@ -324,8 +352,8 @@ def get_dashboard_summary(db: Session = Depends(get_db)):  # Temporarily removed
             "total_employees": 0,
         }
     
-    # Get employees for user 1 (temporarily)
-    employees = db.query(Employee).filter(Employee.user_id == 1).all()
+    # Get employees for current user
+    employees = db.query(Employee).filter(Employee.user_id == current_user.id).all()
     
     if not employees:
         return {
@@ -460,12 +488,15 @@ def get_dashboard_summary(db: Session = Depends(get_db)):  # Temporarily removed
     }
 
 @app.get("/onboarding/details")
-def get_onboarding_details(db: Session = Depends(get_db)):  # Temporarily removed auth for debugging
+def get_onboarding_details(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_active_user)
+):
     """Returns detailed onboarding progress data for current user's employees."""
-    if get_upload_status(1)["status"] != "active":  # Temporarily using user_id=1
+    if get_upload_status(current_user.id)["status"] != "active":
         return {"data": []}
 
-    employees = db.query(Employee).filter(Employee.user_id == 1).all()  # Temporarily using user_id=1
+    employees = db.query(Employee).filter(Employee.user_id == current_user.id).all()
     
     if not employees:
         return {"data": []}
@@ -487,12 +518,15 @@ def get_onboarding_details(db: Session = Depends(get_db)):  # Temporarily remove
     return {"data": data}
 
 @app.get("/tools/details")
-def get_tools_details(db: Session = Depends(get_db)):  # Temporarily removed auth for debugging
+def get_tools_details(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_active_user)
+):
     """Returns detailed tool engagement data for current user's employees."""
-    if get_upload_status(1)["status"] != "active":  # Temporarily using user_id=1
+    if get_upload_status(current_user.id)["status"] != "active":
         return {"data": []}
 
-    employees = db.query(Employee).filter(Employee.user_id == 1).all()  # Temporarily using user_id=1
+    employees = db.query(Employee).filter(Employee.user_id == current_user.id).all()
     
     if not employees:
         return {"data": []}
@@ -514,9 +548,11 @@ def get_tools_details(db: Session = Depends(get_db)):  # Temporarily removed aut
     return {"data": data}
 
 @app.get("/support/details")
-def get_support_details():  # Temporarily removed auth for debugging
+def get_support_details(
+    current_user: User = Depends(get_current_active_user)
+):
     """Returns detailed support ticket data for current user."""
-    if get_upload_status(1)["status"] != "active":  # Temporarily using user_id=1
+    if get_upload_status(current_user.id)["status"] != "active":
         return {"data": []}
 
     # Read support data from processed file if available
@@ -546,9 +582,12 @@ def get_support_details():  # Temporarily removed auth for debugging
     return {"data": []}
 
 @app.get('/bottlenecks/analysis')
-def get_bottleneck_analysis(db: Session = Depends(get_db)):  # Temporarily removed auth for debugging
+def get_bottleneck_analysis(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_active_user)
+):
     '''Returns comprehensive bottleneck analysis including rankings, delays, and risk predictions.'''
-    if get_upload_status(1)["status"] != "active":  # Temporarily using user_id=1
+    if get_upload_status(current_user.id)["status"] != "active":
         return {
             "bottlenecks": [],
             "department_delays": {},
@@ -557,8 +596,8 @@ def get_bottleneck_analysis(db: Session = Depends(get_db)):  # Temporarily remov
             "summary": {"total_employees": 0, "total_bottlenecks": 0, "top_bottleneck": None, "at_risk_count": 0},
         }
 
-    # Get current user's employees from database (temporarily using user_id=1)
-    employees = db.query(Employee).filter(Employee.user_id == 1).all()
+    # Get current user's employees from database
+    employees = db.query(Employee).filter(Employee.user_id == current_user.id).all()
     
     if not employees:
         return {
@@ -627,12 +666,15 @@ def get_bottleneck_analysis(db: Session = Depends(get_db)):  # Temporarily remov
 
 
 @app.get('/bottlenecks/ranking')
-def get_bottleneck_ranking(db: Session = Depends(get_db)):  # Temporarily removed auth for debugging
+def get_bottleneck_ranking(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_active_user)
+):
     '''Returns ranked list of bottlenecks by severity for current user.'''
-    if get_upload_status(1)["status"] != "active":  # Temporarily using user_id=1
+    if get_upload_status(current_user.id)["status"] != "active":
         return {'bottlenecks': []}
 
-    employees = db.query(Employee).filter(Employee.user_id == 1).all()  # Temporarily using user_id=1
+    employees = db.query(Employee).filter(Employee.user_id == current_user.id).all()
     
     if not employees:
         return {'bottlenecks': []}
@@ -687,12 +729,15 @@ def get_bottleneck_ranking(db: Session = Depends(get_db)):  # Temporarily remove
 
 
 @app.get('/bottlenecks/department-delays')
-def get_department_delays(db: Session = Depends(get_db)):  # Temporarily removed auth for debugging
+def get_department_delays(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_active_user)
+):
     '''Returns average onboarding delays by department for current user.'''
-    if get_upload_status(1)["status"] != "active":  # Temporarily using user_id=1
+    if get_upload_status(current_user.id)["status"] != "active":
         return {'department_delays': {}}
 
-    employees = db.query(Employee).filter(Employee.user_id == 1).all()  # Temporarily using user_id=1
+    employees = db.query(Employee).filter(Employee.user_id == current_user.id).all()
     
     if not employees:
         return {'department_delays': {}}
@@ -746,12 +791,15 @@ def get_department_delays(db: Session = Depends(get_db)):  # Temporarily removed
 
 
 @app.get('/bottlenecks/risk-employees')
-def get_risk_employees(db: Session = Depends(get_db)):  # Temporarily removed auth for debugging
+def get_risk_employees(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_active_user)
+):
     '''Returns employees at risk of exceeding 30-day onboarding for current user.'''
-    if get_upload_status(1)["status"] != "active":  # Temporarily using user_id=1
+    if get_upload_status(current_user.id)["status"] != "active":
         return {'risk_employees': []}
 
-    employees = db.query(Employee).filter(Employee.user_id == 1).all()  # Temporarily using user_id=1
+    employees = db.query(Employee).filter(Employee.user_id == current_user.id).all()
     
     if not employees:
         return {'risk_employees': []}
@@ -805,12 +853,15 @@ def get_risk_employees(db: Session = Depends(get_db)):  # Temporarily removed au
 
 
 @app.get('/bottlenecks/root-causes')
-def get_root_causes(db: Session = Depends(get_db)):  # Temporarily removed auth for debugging
+def get_root_causes(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_active_user)
+):
     '''Returns analysis of root causes for delays for current user.'''
-    if get_upload_status(1)["status"] != "active":  # Temporarily using user_id=1
+    if get_upload_status(current_user.id)["status"] != "active":
         return {"total_delayed_employees": 0, "delay_reasons": {}, "ticket_impact": {}}
 
-    employees = db.query(Employee).filter(Employee.user_id == 1).all()  # Temporarily using user_id=1
+    employees = db.query(Employee).filter(Employee.user_id == current_user.id).all()
     
     if not employees:
         return {"total_delayed_employees": 0, "delay_reasons": {}, "ticket_impact": {}}
