@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, Boolean, Float, DateTime, ForeignKey
+from sqlalchemy import Column, Integer, String, Boolean, Float, DateTime, ForeignKey, UniqueConstraint
 from sqlalchemy.orm import relationship
 from app.database import Base
 
@@ -14,8 +14,10 @@ class User(Base):
 
 class Employee(Base):
     __tablename__ = "employees"
+    __table_args__ = (UniqueConstraint('employee_id', 'user_id', name='_employee_user_uc'),)
 
-    employee_id = Column(String, primary_key=True, index=True)
+    id = Column(Integer, primary_key=True, index=True)
+    employee_id = Column(String, nullable=False, index=True)
     user_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
     employee_name = Column(String, nullable=False)
     email = Column(String, nullable=True)
