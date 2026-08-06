@@ -1,7 +1,7 @@
 faker
 pandas
 fastapi
-uvicorn
+uvicorn[standard]
 sqlalchemy
 openpyxl
 python-multipart
@@ -9,3 +9,4 @@ bcrypt
 python-jose[cryptography]
 passlib[bcrypt]
 psycopg2-binary
+python-dotenv
