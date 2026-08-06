@@ -5,7 +5,7 @@ uvicorn[standard]
 sqlalchemy
 openpyxl
 python-multipart
-bcrypt
+bcrypt==4.2.0
 python-jose[cryptography]
 passlib[bcrypt]
 psycopg2-binary
